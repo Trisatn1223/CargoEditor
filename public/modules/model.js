@@ -64,9 +64,16 @@ export function fromPayload(payload, catalog, sourceCode) {
     if (data.scene_path && data.scene_path !== preset.scene_path) throw new Error('The ship scene changed. This level cannot be copied safely.');
     const ship = newShip(preset);
     const index = entry => { const i = preset.layout.slots.findIndex(slot => layoutKey(slot) === slotKey(entry)); if (i < 0) throw new Error('A level contains an unknown loading position.'); return i; };
-    for (const e of data.initial_load || []) { const i = index(e); if (ship.initial[i] !== null) throw new Error('Duplicate starting position.'); ship.initial[i] = e.container_type_id; }
-    for (const e of data.target_load || []) { if (Object.hasOwn(ship.targets, e.container_type_id)) throw new Error('Duplicate target quantity.'); ship.targets[e.container_type_id] = e.count; }
-    for (const e of data.target_zones || []) ship.zones[index(e)].push(e.container_type_id);
+    // Some older level snapshots reference a ship preset without repeating
+    // all its fields. Match Godot's preset-copy behaviour only when the field
+    // is OMITTED. An explicit [] means the level really starts empty.
+    const initialLoad = Object.hasOwn(data, 'initial_load') ? data.initial_load : (preset.initial_load ?? []);
+    const targetLoad = Object.hasOwn(data, 'target_load') ? data.target_load : (preset.target_load ?? []);
+    const targetZones = Object.hasOwn(data, 'target_zones') ? data.target_zones : (preset.target_zones ?? []);
+    if (![initialLoad, targetLoad, targetZones].every(Array.isArray)) throw new Error('Invalid ship cargo in the level snapshot.');
+    for (const e of initialLoad) { const i = index(e); if (ship.initial[i] !== null) throw new Error('Duplicate starting position.'); ship.initial[i] = e.container_type_id; }
+    for (const e of targetLoad) { if (Object.hasOwn(ship.targets, e.container_type_id)) throw new Error('Duplicate target quantity.'); ship.targets[e.container_type_id] = e.count; }
+    for (const e of targetZones) ship.zones[index(e)].push(e.container_type_id);
     return ship;
   });
   const errors = validate(draft, catalog); if (errors.length) throw new Error(errors.join('\n'));
