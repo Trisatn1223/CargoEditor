@@ -1,4 +1,5 @@
-# Add this block to the EXISTING host Caddyfile. Do not replace your API block.
+# Add to the EXISTING host Caddyfile. Adjust API upstream if API is Docker-only.
+# With Docker-hosted API, prefer deploy/Caddyfile.docker.
 cargo-editor.dreamislandstudio.de {
     encode zstd gzip
     reverse_proxy 127.0.0.1:8090
