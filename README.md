@@ -35,7 +35,7 @@ Repository: https://github.com/Trisatn1223/CargoEditor
 
 API: `https://cargo-api.dreamislandstudio.de`
 
-The supplied systemd timer checks `main` every two minutes, runs tests during the image build, probes the new image, and deploys it. Failed tests/builds do not replace the running site. A failed Compose deployment attempts to restore the previous image.
+The supplied systemd timer checks `main` every 30 minutes, runs tests during the image build, probes the new image, and deploys it. Failed tests/builds do not replace the running site. A failed Compose deployment attempts to restore the previous image.
 
 ## Integration boundaries
 
