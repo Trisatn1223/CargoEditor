@@ -106,3 +106,28 @@ test('browser fetch is invoked without the API instance as its receiver', async 
   const api = new CargoAPI({ storage: memoryStorage(), fetcher: function () { assert.equal(this, undefined); called = true; return Promise.resolve(new Response(JSON.stringify({ ships: [] }))); } });
   await api.presets(); assert(called);
 });
+
+test('HTML 404 from a proxy preserves not-found status and triggers the private-level fallback', async () => {
+  const storage = memoryStorage();
+  storage.setItem('cargo-chief-player-token-v1', 'test-player');
+  const calls = [];
+  const api = new CargoAPI({ base: '/api', storage, fetcher: async (url) => {
+    calls.push(url);
+    if (url.includes('/me/')) return new Response(JSON.stringify({ code: 'ABCDE', payload: {} }), { status: 200 });
+    return new Response('<html><body>Not Found</body></html>', { status: 404, headers: { 'Content-Type': 'text/html' } });
+  } });
+  assert.equal((await api.load('ABCDE')).code, 'ABCDE');
+  assert.deepEqual(calls, ['/api/levels/ABCDE', '/api/me/levels/ABCDE']);
+});
+test('HTML gateway responses identify API proxy errors instead of an unreadable response', async () => {
+  const api = new CargoAPI({ base: '/api', storage: memoryStorage(), fetcher: async () =>
+    new Response('<html>Bad gateway</html>', { status: 502, headers: { 'Content-Type': 'text/html' } }) });
+  await assert.rejects(() => api.load('ABCDE'), error =>
+    error.status === 502 && /gateway error.*caddy/i.test(error.message));
+});
+test('Unexpected HTML on successful GET identifies endpoint and HTTP status', async () => {
+  const api = new CargoAPI({ base: '/api', storage: memoryStorage(), fetcher: async () =>
+    new Response('<html>Editor index</html>', { status: 200, headers: { 'Content-Type': 'text/html' } }) });
+  await assert.rejects(() => api.load('ABCDE'), error =>
+    error.status === 200 && /expected json.*html.*http 200 at \/levels\/abcde/i.test(error.message));
+});
