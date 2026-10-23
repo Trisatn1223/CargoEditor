@@ -13,7 +13,11 @@ LABEL org.opencontainers.image.source="https://github.com/Trisatn1223/CargoEdito
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=checked /app/public/ /usr/share/nginx/html/
 USER root
-RUN printf '{"commit":"%s"}\n' "$BUILD_COMMIT" > /usr/share/nginx/html/version.json
+RUN printf '{"commit":"%s"}\\n' "$BUILD_COMMIT" > /usr/share/nginx/html/version.json \
+    && chmod 644 /etc/nginx/conf.d/default.conf \
+    && chmod -R a+rX /usr/share/nginx/html
+# Source checkouts with umask 077 have 0600/0700 permissions. The runtime
+# uses uid 101, so explicitly grant read/search access to static content.
 USER 101
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
