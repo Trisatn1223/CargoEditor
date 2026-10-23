@@ -13,9 +13,9 @@ Source: the user's Godot.zip supplied on 23 October 2026. Only the derived ship 
 | Depot has four slots | `Level/BasisLevel.tscn` | Four cells; occupancy persists between ships |
 | Exact per-type target counts, no extra types | `Objects/Schiff/schiff.gd`, `checkFuerLadungsAnzahl` | Exact tally equality |
 | Restrictions apply to each container type only if that type has target positions | `schiff.gd`, `checkForLadungsPosition` | A type with no restrictions can occupy any slot |
-| Y lever arm = slot position-in-zone + zone offset + ship offset | `schiff.gd`, `berechneSchwerpunktsVektoren` | Scene-derived lever + API `center_offset[1]` |
-| Y balance = sum(weight × Y lever) / ((lightest + heaviest) / 2) | `schiff.gd`, `getCurrentLadungsverteilung` | Same formula; empty ship = 0 |
-| Easy mode checks Y **against max X variance** | `LevelManager.gd`, `eZugBeendet` | Deliberately uses `max_x_variance`, matching current source; never checks X position |
+| X lever arm = slot position-in-zone + zone offset + ship offset | `schiff.gd`, `berechneSchwerpunktsVektoren` | Scene-derived lever + API `center_offset[1]` |
+| X balance = sum(weight × X lever) / ((lightest + heaviest) / 2) | `schiff.gd`, `getCurrentLadungsverteilung` | Same formula; empty ship = 0 |
+| The **editor now checks X** against max X variance (different from the uploaded Godot Easy branch, which checks Y) | `LevelManager.gd`, `eZugBeendet` | Deliberately uses `max_x_variance`, matching current source; never checks X position |
 | Food without a refrigerator becomes ID 5 | `Objects/Container/container.gd`, `eZugBeendet` | Food transforms into waste after a move |
 | Refrigerators cover eight neighbours, in the same zone | `ladepunkt.gd`, `getLadepunkteKreis` | Includes diagonal neighbours; no cross-zone cooling |
 | Depot/train do not apply ship container effects | `container.gd`, `v_ZonenID >= 0` | Food is safe in depot/train |
@@ -29,7 +29,7 @@ The editor is a **deterministic settled-turn rules model**, not a headless execu
 
 - **Food event ordering:** the uploaded `LevelManager` subscribes to `ZugBeendet` before subsequently spawned containers. It can decide that a ship is complete before a food container spoils. The editor intentionally checks both balance and the post-effect goal; it will not publish a witness that relies on a spoiled-food race. For special-container levels, minimums may differ from the current game's race behaviour. Incoming pre-spawned ships also receive container signals in Godot; the editor applies effects only to the active ship. Fix the game to evaluate effects for the active ship first, then balance and goals once.
 - **Animation interactions:** transient retrieval from a departing outbound train, and input during ship transition, are not modelled. The solver waits until each transfer and automatic animation has settled. This avoids timing-dependent solutions.
-- **Y limit:** Easy mode currently compares `getCurrentLadungsverteilungY()` with `v_MaxXVarianz`. All returned presets currently have matching X/Y limits. If this is a typo, change the Godot Easy branch to `v_MaxYVarianz` and `rules.js` to `p.max_y_variance` together; bump `RULES_VERSION` and update tests.
+- **Axis incompatibility:** This editor has been changed to use the **X** balance component and `max_x_variance` as requested. The supplied Godot Easy branch still compares `getCurrentLadungsverteilungY()` to `v_MaxXVarianz`. The editor cannot patch the mobile game. Change and test Godot's Easy branch to evaluate X as well before relying on the browser's accepted solutions.
 - **Target zones:** `C_GlobaleFunkitonen.containsIundV` compares `v` only; it ignores the zone stored in `i`. The browser mirrors that behaviour: restricting (x,y) in one hold also allows the same coordinate in another hold. The API export still preserves `zone_id`. Fix both implementations together to enforce hold-specific restrictions.
 - **Move cap:** Godot fails when `moves >= one_star_threshold`, even on a completing move. The local solver searches without that provisional cap; derived thresholds are `ceil(min × 3/2/1.5)`, and a positive minimum is always below the one-star cap. A starting state that already meets the goal needs an actual transfer to trigger completion, as in the game.
 - **Next ship bound:** `doesNextShipExsist()` uses `size >= id`; for zero-based indices it should normally be `id < size`. Test the last-ship transition in Godot before release.
@@ -40,7 +40,7 @@ These defects are documented rather than silently patching an uploaded game proj
 
 A* is used for normal cargo, with an admissible lower bound equal to missing plus surplus cargo across remaining ships. Effects switch to Dijkstra (`h = 0`) because a transformation can change several counts at once. Every generated move costs one. A returned solved result is optimal **under the rules above**, and the witness is replayed against that same rule module before success is reported.
 
-The queue and visited-state budgets are bounded. At 250,000 states/queued nodes or 60 seconds, the result is `limit`, not `impossible`. The UI offers cancellation by terminating the Web Worker. Only an exhausted queue can produce `impossible`.
+The queue and visited-state budgets are bounded. At 2,000,000 states/queued nodes or 180 seconds, the result is `limit`, not `impossible`. The UI offers cancellation by terminating the Web Worker. Only an exhausted queue can produce `impossible`. Up to 10 optimal terminal routes are collected before the search stops, and the shortest is selected.
 
 The solver is deliberately local. No moves or draft are sent while checking. The optional downloaded witness uses an editor-only move format (`ship`, `container_type_id`, `from`, `to`); it is **not** sent to `/service/levels/{code}/submit-solutions`, whose replay contract is unspecified and requires a secret service role. The normal publication POST contains only the documented community payload.
 
