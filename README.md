@@ -3,7 +3,7 @@
 A responsive, English-language community editor for Cargo Chief. The production container serves static HTML, CSS, JavaScript and preset data. The solver runs in a browser Web Worker. There is **no server-side game solver, application backend, database, or service token** in this repository.
 
 - Build starting cargo, target quantities, allowed target positions, a 2 × 2 depot and a cyclic incoming train.
-- Easy mode only (`level_mode: 0`); this editor evaluates X balance (the uploaded Godot Easy branch still evaluates Y until the game is updated).
+- Easy mode only (`level_mode: 0`); this editor evaluates the Y balance component, matching the supplied Godot Easy-mode logic.
 - Run a cancellable local A*/Dijkstra search (up to 2,000,000 states or 180 seconds), compare up to 10 optimal goal paths, replay the best witness locally and derive star thresholds from its proven minimum **within the documented local rules**.
 - Load an existing code as a new copy. The original level is never overwritten.
 - After checking, submit with an anonymous **player** token; display the actual API-assigned code, Copy to clipboard, and New level.
@@ -41,7 +41,7 @@ The supplied systemd timer checks `main` every 30 minutes, runs tests during the
 
 1. The production editor uses a same-origin API path (`/api/...`) routed through the existing Caddy reverse proxy. Update the existing Caddyfile as documented; the old API CORS failure is resolved by this route, without changing the API's CORS configuration.
 2. The supplied backend handoff says automatic replay approval is not implemented. `POST /levels` is wired, but this frontend **cannot force `published: true`**. If the API responds with false or omits that flag, the UI says saved/pending.
-3. **Axis compatibility warning:** the browser X-only balance intentionally differs from the supplied Godot Easy-mode Y check. Update the game to X before treating browser checks as game-equivalent. The Godot upload also contains several rule-order bugs. The local model reproduces the moment formula, Easy-mode threshold, cyclic train, depot, target counts and current grid-coordinate target matching, but uses stable, sequential turns and rejects food-spoilage race wins. See [Godot rule mapping and limits](docs/GODOT_RULES.md). Local minimums are not a claim of server verification or full animation-race equivalence.
+3. The browser's Y-axis balance matches the supplied Godot Easy-mode balance component. Godot currently checks this Y value against the *X-variance threshold*, and the editor mirrors that source behavior. The Godot upload also contains several rule-order bugs. The local model reproduces the moment formula, Easy-mode threshold, cyclic train, depot, target counts and current grid-coordinate target matching, but uses stable, sequential turns and rejects food-spoilage race wins. See [Godot rule mapping and limits](docs/GODOT_RULES.md). Local minimums are not a claim of server verification or full animation-race equivalence.
 4. Existing Godot online code examples have **six letters**, while the handoff described five. The editor accepts 5–12 alphanumeric characters and always displays the code supplied by the API. Code length is owned by the backend.
 
 ## Project layout
