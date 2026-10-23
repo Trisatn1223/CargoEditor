@@ -84,51 +84,62 @@ Diesen Block in die **bereits verwendete** Caddy-Konfiguration aufnehmen:
 ```caddyfile
 cargo-editor.dreamislandstudio.de {
     encode zstd gzip
-    reverse_proxy cargo-editor:8080
+
+    handle_path /api/* {
+        reverse_proxy api:8000
+    }
+
+    handle {
+        reverse_proxy cargo-editor:8080
+    }
 }
 ```
 
 Caddy mit dem zur vorhandenen Installation passenden `docker exec … caddy validate` und `docker exec … caddy reload` neu laden. Konfigurationspfad und Containername hängen von deiner vorhandenen API-Installation ab und sind hier bewusst nicht geraten.
 
-## 4. Erforderlich: API-CORS freigeben
+## 4. API ohne CORS-Fehler (Same-Origin-Proxy)
 
-Am 23.10.2026 lieferte `GET /editor/presets` echte Presets. Die OPTIONS-Vorabfrage von der neuen Editor-Domain wurde jedoch mit HTTP 400 abgelehnt.
+Der produktive Editor sendet API-Aufrufe an `https://cargo-editor.dreamislandstudio.de/api/...`. Caddy entfernt den Prefix `/api` und leitet an den **bereits laufenden** API-Container `api:8000` weiter. Im Browser sind damit HTML und API dieselbe Origin; zusätzliche CORS-Freigaben sind für diese Domain nicht erforderlich.
 
-In der **vorhandenen API** muss dieser erlaubte Origin ergänzt werden:
+Im bestehenden `/opt/container-game/ops/Caddyfile` **nur den Cargo-Editor-Block** wie in Schritt 3 ändern. Der bestehende `{$API_DOMAIN}`-Block muss unverändert bleiben:
 
-```text
-https://cargo-editor.dreamislandstudio.de
+```caddyfile
+{$API_DOMAIN} {
+    # Existing API config remains unchanged.
+    reverse_proxy api:8000
+}
+
+cargo-editor.dreamislandstudio.de {
+    encode zstd gzip
+    handle_path /api/* {
+        reverse_proxy api:8000
+    }
+    handle {
+        reverse_proxy cargo-editor:8080
+    }
+}
 ```
 
-Der konkrete Name der Umgebungsvariable ist aus der Übergabe nicht bekannt. Nicht einfach eine erfundene `CORS_ORIGINS`-Variable eintragen: im API-Quellcode bzw. in deren Compose-Konfiguration nachsehen. Wenn FastAPI direkt konfiguriert wird, entspricht die erforderliche Einstellung sinngemäß:
+Dabei ist der API-Block nur ein **schematisches Beispiel** – keinen bereits konfigurierten Header, Limits oder Sicherheitsregeln entfernen.
 
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        # vorhandene erlaubte Origins behalten
-        "https://cargo-editor.dreamislandstudio.de",
-    ],
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Authorization", "Content-Type", "Accept"],
-)
-```
-
-Das ist ein Integrationsbeispiel, keine vollständige Ersatzkonfiguration. Die API darf weitere schon benötigte Methoden/Origins behalten. CORS nur an einer Stelle konsistent setzen; doppelte widersprüchliche Header vermeiden. Für Browser-Tests auf dem eigenen Rechner zusätzlich `http://localhost:8080` erlauben, wenn gewünscht.
-
-Nach dem Neustart der API testen:
+Caddy neu laden:
 
 ```bash
-curl -i -X OPTIONS 'https://cargo-api.dreamislandstudio.de/levels' \
-  -H 'Origin: https://cargo-editor.dreamislandstudio.de' \
-  -H 'Access-Control-Request-Method: POST' \
-  -H 'Access-Control-Request-Headers: authorization,content-type'
+cd /opt/container-game
+docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile
+docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 ```
 
-Erwartet: erfolgreicher Status und `Access-Control-Allow-Origin: https://cargo-editor.dreamislandstudio.de`. In der Webseite sollte anschließend **API connected** erscheinen.
+Testen:
 
-**Keinen Editor-/Service-Token in HTML, JavaScript, Nginx, Git oder Docker eintragen.** Die Webseite verwendet `/auth/anonymous` für einen individuellen Spieler-Token.
+```bash
+curl -fsS https://cargo-editor.dreamislandstudio.de/healthz
+curl -fsS https://cargo-editor.dreamislandstudio.de/api/editor/presets
+```
+
+Der zweite Aufruf muss JSON mit Schiffen und Containern liefern. Bei HTTP 404 oder HTML wurde der neue `handle_path /api/*`-Block noch nicht in der laufenden Caddy-Konfiguration übernommen. Bei HTTP 502 das gemeinsame Docker-Netzwerk und den Namen `api` prüfen.
+
+Der Editor benutzt nur anonyme Spieler-Authentifizierung (`/api/auth/anonymous`); niemals einen Studio-/Service-Token in Browser-Dateien hinterlegen. Lokal (localhost) läuft die Entwicklung weiterhin über die öffentliche API-Origin und benötigt dort ggf. CORS.
 
 ## 5. Automatisch den neuesten Main-Stand bereitstellen
 
@@ -184,7 +195,7 @@ Der Updater ist absichtlich als fest installierte Datei außerhalb des Git-Repos
 ## 6. Levelcodes und Veröffentlichung
 
 1. Schiff, Startladung, Zielmengen, erlaubte Positionen, Depot und Zugfolge bearbeiten.
-2. **Check level**: Der große Dialog zeigt die lokale Suche. Der Balken ist bewusst unbestimmt, da der gesamte Suchraum vorher unbekannt ist. Abbruch ist möglich.
+2. **Check level**: Der große Dialog zeigt die lokale Suche. Der Balken zeigt den genutzten Suchbudget-Anteil (bis zu 2.000.000 Zustände), **nicht** den tatsächlichen Lösungsfortschritt. Die Suche betrachtet bis zu zehn optimale Lösungswege. Abbruch ist möglich.
 3. Nach Erfolg **Publish level** drücken.
 4. Die API liefert den Code. Er erscheint im Dialog und oben rechts.
 5. **Copy to clipboard** kopiert ihn. **New level** löscht den lokalen Entwurf vollständig.
@@ -194,7 +205,7 @@ Die Übergabe beschreibt eine noch fehlende serverseitige Replay-Freigabe. Diese
 
 Für sofort sichtbare Community-Level muss die API eine entsprechende Veröffentlichungsregel anbieten. Diese Änderung kann **nicht** allein im statischen Editor erfolgen. Der Backend-Quellcode wurde nicht mitgeliefert. Der Editor schickt keine geheimen Service-Anfragen und täuscht keine Freigabe vor.
 
-Ein Suchlimit bedeutet „nicht abschließend geprüft“, nicht „unlösbar“. Die lokale Zugzahl bezieht sich auf das dokumentierte Regelnmodell, siehe [GODOT_RULES.md](GODOT_RULES.md). Dort stehen auch konkrete Abweichungen/Bugs des hochgeladenen Godot-Codes, besonders bei Lebensmittel-Effekten und dem letzten Schiffswechsel.
+Ein Suchlimit bedeutet „nicht abschließend geprüft“, nicht „unlösbar“. Achtung: Die neue Editor-Prüfung nutzt auf ausdrücklichen Wunsch die **X-Achse**. Der bisher übergebene Godot-Code prüfte Easy auf Y. Die Spielregeln müssen abgeglichen werden, bevor veröffentlichte Level in der App als geprüft gelten. Siehe [GODOT_RULES.md](GODOT_RULES.md). Dort stehen auch konkrete Abweichungen/Bugs des hochgeladenen Godot-Codes, besonders bei Lebensmittel-Effekten und dem letzten Schiffswechsel.
 
 ## 7. Fehler und Rückkehr zur vorherigen Version
 
