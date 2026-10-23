@@ -1,0 +1,11 @@
+[Unit]
+Description=Build and deploy the latest Cargo Editor main commit
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/cargo-editor-update
+TimeoutStartSec=900
+Environment=GIT_TERMINAL_PROMPT=0

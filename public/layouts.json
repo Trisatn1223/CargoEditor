@@ -1,0 +1,311 @@
+{
+  "res://Objects/Schiff/TestSchiff.tscn": {
+    "slots": [
+      {
+        "zone": 0,
+        "position": [
+          0,
+          0
+        ],
+        "lever": [
+          -1.0,
+          -1.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          1.0,
+          0.0
+        ],
+        "lever": [
+          0.0,
+          -1.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          2.0,
+          0.0
+        ],
+        "lever": [
+          1.0,
+          -1.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          0.0,
+          1.0
+        ],
+        "lever": [
+          -1.0,
+          0.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          1.0,
+          1.0
+        ],
+        "lever": [
+          0,
+          0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          2.0,
+          1.0
+        ],
+        "lever": [
+          1.0,
+          0.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          0.0,
+          2.0
+        ],
+        "lever": [
+          -1.0,
+          1.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          1.0,
+          2.0
+        ],
+        "lever": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          2.0,
+          2.0
+        ],
+        "lever": [
+          1.0,
+          1.0
+        ]
+      }
+    ],
+    "zones": 1,
+    "source_sha256": "5cc5680f007d7bbaac20587ca10e1a01acb69a625bd7a96c16fff3f701e35408"
+  },
+  "res://Objects/Schiff/Schiffe/Schiff_01.tscn": {
+    "slots": [
+      {
+        "zone": 0,
+        "position": [
+          0,
+          0
+        ],
+        "lever": [
+          -1.0,
+          -1.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          1.0,
+          0.0
+        ],
+        "lever": [
+          0.0,
+          -1.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          2.0,
+          0.0
+        ],
+        "lever": [
+          1.0,
+          -1.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          0.0,
+          1.0
+        ],
+        "lever": [
+          -1.0,
+          0.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          1.0,
+          1.0
+        ],
+        "lever": [
+          0,
+          0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          2.0,
+          1.0
+        ],
+        "lever": [
+          1.0,
+          0.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          0.0,
+          2.0
+        ],
+        "lever": [
+          -1.0,
+          1.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          1.0,
+          2.0
+        ],
+        "lever": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "zone": 0,
+        "position": [
+          2.0,
+          2.0
+        ],
+        "lever": [
+          1.0,
+          1.0
+        ]
+      },
+      {
+        "zone": 1,
+        "position": [
+          0,
+          0
+        ],
+        "lever": [
+          1.0,
+          1.0
+        ]
+      },
+      {
+        "zone": 1,
+        "position": [
+          1.0,
+          0.0
+        ],
+        "lever": [
+          2.0,
+          1.0
+        ]
+      },
+      {
+        "zone": 1,
+        "position": [
+          2.0,
+          0.0
+        ],
+        "lever": [
+          3.0,
+          1.0
+        ]
+      },
+      {
+        "zone": 1,
+        "position": [
+          0.0,
+          1.0
+        ],
+        "lever": [
+          1.0,
+          2.0
+        ]
+      },
+      {
+        "zone": 1,
+        "position": [
+          1.0,
+          1.0
+        ],
+        "lever": [
+          2.0,
+          2.0
+        ]
+      },
+      {
+        "zone": 1,
+        "position": [
+          2.0,
+          1.0
+        ],
+        "lever": [
+          3.0,
+          2.0
+        ]
+      },
+      {
+        "zone": 1,
+        "position": [
+          0.0,
+          2.0
+        ],
+        "lever": [
+          1.0,
+          3.0
+        ]
+      },
+      {
+        "zone": 1,
+        "position": [
+          1.0,
+          2.0
+        ],
+        "lever": [
+          2.0,
+          3.0
+        ]
+      },
+      {
+        "zone": 1,
+        "position": [
+          2.0,
+          2.0
+        ],
+        "lever": [
+          3.0,
+          3.0
+        ]
+      }
+    ],
+    "zones": 2,
+    "source_sha256": "0d360ff88eb5008a9c7682625ec2c595b15d0956081f1cd87ca33f5d8f1b5244"
+  }
+}

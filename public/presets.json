@@ -1,0 +1,896 @@
+{
+  "ships": [
+    {
+      "id": 0,
+      "studio_name": "None",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 5.0,
+      "max_y_variance": 5.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            2
+          ],
+          "container_type_id": 1
+        }
+      ],
+      "target_load": [
+        {
+          "count": 2,
+          "container_type_id": 0
+        },
+        {
+          "count": 1,
+          "container_type_id": 1
+        }
+      ],
+      "target_zones": [
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            2
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            2
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            1
+          ],
+          "container_type_id": 1
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "studio_name": "Schiff_01",
+      "scene_path": "res://Objects/Schiff/Schiffe/Schiff_01.tscn",
+      "max_x_variance": 5.0,
+      "max_y_variance": 5.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [],
+      "target_load": [],
+      "target_zones": []
+    },
+    {
+      "id": 4,
+      "studio_name": "Kombination 4",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 5.0,
+      "max_y_variance": 5.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            1
+          ],
+          "container_type_id": 3
+        }
+      ],
+      "target_load": [
+        {
+          "count": 3,
+          "container_type_id": 0
+        },
+        {
+          "count": 1,
+          "container_type_id": 3
+        },
+        {
+          "count": 3,
+          "container_type_id": 4
+        }
+      ],
+      "target_zones": [
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            1
+          ],
+          "container_type_id": 3
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "studio_name": "None \u2013 Kopie",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 5.0,
+      "max_y_variance": 5.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            1
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            1
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            0
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            1
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            2
+          ],
+          "container_type_id": 1
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            2
+          ],
+          "container_type_id": 1
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            2
+          ],
+          "container_type_id": 2
+        }
+      ],
+      "target_load": [
+        {
+          "count": 2,
+          "container_type_id": 0
+        },
+        {
+          "count": 1,
+          "container_type_id": 1
+        }
+      ],
+      "target_zones": [
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            2
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            2
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            1
+          ],
+          "container_type_id": 1
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "studio_name": "Kombination 6",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 5.0,
+      "max_y_variance": 5.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            0
+          ],
+          "container_type_id": 1
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            1
+          ],
+          "container_type_id": 2
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            2
+          ],
+          "container_type_id": 2
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            2
+          ],
+          "container_type_id": 1
+        }
+      ],
+      "target_load": [
+        {
+          "count": 1,
+          "container_type_id": 0
+        },
+        {
+          "count": 2,
+          "container_type_id": 1
+        },
+        {
+          "count": 2,
+          "container_type_id": 2
+        }
+      ],
+      "target_zones": [
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            0
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            1
+          ],
+          "container_type_id": 2
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            2
+          ],
+          "container_type_id": 2
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "studio_name": "Demo 1 1",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 3.0,
+      "max_y_variance": 3.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [],
+      "target_load": [
+        {
+          "count": 1,
+          "container_type_id": 0
+        }
+      ],
+      "target_zones": []
+    },
+    {
+      "id": 8,
+      "studio_name": "Demo 1 3",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 3.0,
+      "max_y_variance": 3.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [],
+      "target_load": [
+        {
+          "count": 1,
+          "container_type_id": 0
+        },
+        {
+          "count": 2,
+          "container_type_id": 1
+        }
+      ],
+      "target_zones": []
+    },
+    {
+      "id": 9,
+      "studio_name": "Demo 2 3",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 3.0,
+      "max_y_variance": 3.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            1
+          ],
+          "container_type_id": 1
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            0
+          ],
+          "container_type_id": 1
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            2
+          ],
+          "container_type_id": 1
+        }
+      ],
+      "target_load": [
+        {
+          "count": 2,
+          "container_type_id": 0
+        },
+        {
+          "count": 2,
+          "container_type_id": 1
+        }
+      ],
+      "target_zones": [
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            0
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            1
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            2
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            2
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            1
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            0
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            0
+          ],
+          "container_type_id": 1
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            1
+          ],
+          "container_type_id": 1
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            2
+          ],
+          "container_type_id": 1
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "studio_name": "Demo 1 2",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 3.0,
+      "max_y_variance": 3.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [],
+      "target_load": [
+        {
+          "count": 3,
+          "container_type_id": 0
+        }
+      ],
+      "target_zones": []
+    },
+    {
+      "id": 11,
+      "studio_name": "Demo 1 4",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 3.0,
+      "max_y_variance": 3.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [],
+      "target_load": [
+        {
+          "count": 3,
+          "container_type_id": 0
+        },
+        {
+          "count": 2,
+          "container_type_id": 2
+        }
+      ],
+      "target_zones": []
+    },
+    {
+      "id": 12,
+      "studio_name": "Demo 2 1",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 3.0,
+      "max_y_variance": 3.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [],
+      "target_load": [
+        {
+          "count": 2,
+          "container_type_id": 0
+        },
+        {
+          "count": 1,
+          "container_type_id": 1
+        }
+      ],
+      "target_zones": [
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            1
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            2
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            0
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            2
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            1
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            0
+          ],
+          "container_type_id": 0
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "studio_name": "Demo 2 2",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 3.0,
+      "max_y_variance": 3.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [],
+      "target_load": [
+        {
+          "count": 2,
+          "container_type_id": 0
+        },
+        {
+          "count": 2,
+          "container_type_id": 1
+        },
+        {
+          "count": 1,
+          "container_type_id": 2
+        }
+      ],
+      "target_zones": [
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            0
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            1
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            2
+          ],
+          "container_type_id": 0
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            0
+          ],
+          "container_type_id": 2
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            1
+          ],
+          "container_type_id": 2
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            2
+          ],
+          "container_type_id": 2
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            0
+          ],
+          "container_type_id": 2
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            1
+          ],
+          "container_type_id": 2
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            2
+          ],
+          "container_type_id": 2
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "studio_name": "Demo 3 1",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 3.0,
+      "max_y_variance": 3.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [
+        {
+          "zone_id": 0,
+          "position": [
+            1,
+            1
+          ],
+          "container_type_id": 2
+        }
+      ],
+      "target_load": [
+        {
+          "count": 1,
+          "container_type_id": 3
+        },
+        {
+          "count": 2,
+          "container_type_id": 4
+        }
+      ],
+      "target_zones": [
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            1
+          ],
+          "container_type_id": 3
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "studio_name": "Demo 3 2",
+      "scene_path": "res://Objects/Schiff/TestSchiff.tscn",
+      "max_x_variance": 3.0,
+      "max_y_variance": 3.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            1
+          ],
+          "container_type_id": 4
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            0,
+            2
+          ],
+          "container_type_id": 3
+        }
+      ],
+      "target_load": [
+        {
+          "count": 1,
+          "container_type_id": 1
+        },
+        {
+          "count": 2,
+          "container_type_id": 2
+        },
+        {
+          "count": 1,
+          "container_type_id": 3
+        },
+        {
+          "count": 2,
+          "container_type_id": 4
+        }
+      ],
+      "target_zones": [
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            0
+          ],
+          "container_type_id": 4
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            1
+          ],
+          "container_type_id": 4
+        },
+        {
+          "zone_id": 0,
+          "position": [
+            2,
+            2
+          ],
+          "container_type_id": 4
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "studio_name": "",
+      "scene_path": "res://Objects/Schiff/Schiffe/Schiff_01.tscn",
+      "max_x_variance": 3.0,
+      "max_y_variance": 3.0,
+      "center_offset": [
+        0.0,
+        0.0
+      ],
+      "initial_load": [],
+      "target_load": [],
+      "target_zones": []
+    }
+  ],
+  "containers": [
+    {
+      "id": 0,
+      "studio_name": "Normal \u2013 leicht",
+      "weight": 1.0,
+      "function_id": 0,
+      "texture_path": null,
+      "color_rgba": [
+        0.94902,
+        0.788235,
+        0.298039,
+        1.0
+      ]
+    },
+    {
+      "id": 1,
+      "studio_name": "Normal \u2013 mittel",
+      "weight": 2.0,
+      "function_id": 0,
+      "texture_path": null,
+      "color_rgba": [
+        0.556863,
+        0.356863,
+        0.85098,
+        1.0
+      ]
+    },
+    {
+      "id": 2,
+      "studio_name": "Normal \u2013 schwer",
+      "weight": 3.0,
+      "function_id": 0,
+      "texture_path": null,
+      "color_rgba": [
+        0.301961,
+        0.337255,
+        0.380392,
+        1.0
+      ]
+    },
+    {
+      "id": 3,
+      "studio_name": "K\u00fchlcontainer",
+      "weight": 2.0,
+      "function_id": 1,
+      "texture_path": null,
+      "color_rgba": [
+        0.145098,
+        0.776471,
+        0.854902,
+        1.0
+      ]
+    },
+    {
+      "id": 4,
+      "studio_name": "Lebensmittelcontainer",
+      "weight": 2.0,
+      "function_id": 4,
+      "texture_path": null,
+      "color_rgba": [
+        0.427451,
+        0.298039,
+        0.254902,
+        1.0
+      ]
+    },
+    {
+      "id": 5,
+      "studio_name": "Abfallcontainer",
+      "weight": 2.0,
+      "function_id": 0,
+      "texture_path": null,
+      "color_rgba": [
+        0.35,
+        0.65,
+        0.95,
+        1.0
+      ]
+    }
+  ],
+  "captured_at": "2026-10-23"
+}

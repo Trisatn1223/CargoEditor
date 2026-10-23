@@ -1,0 +1,5 @@
+# Add this block to the EXISTING host Caddyfile. Do not replace your API block.
+cargo-editor.dreamislandstudio.de {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8090
+}

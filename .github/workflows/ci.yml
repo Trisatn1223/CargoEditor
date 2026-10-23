@@ -1,0 +1,50 @@
+name: Test and build static editor
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test rule engine, solver, payloads and API client
+        run: npm test
+      - name: Check browser modules
+        run: |
+          node --check public/app.js
+          node --check public/solver.worker.js
+          bash -n deploy/update.sh
+      - name: Build runtime image (includes tests)
+        run: docker build --build-arg BUILD_COMMIT=${{ github.sha }} -t cargo-editor:ci .
+      - name: Test read-only static container
+        run: |
+          docker run -d --name editor --read-only --tmpfs /tmp:rw,size=32m,mode=1777 --cap-drop ALL --security-opt no-new-privileges -p 8090:8080 cargo-editor:ci
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8090/healthz; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8090/healthz
+          curl -fsS http://127.0.0.1:8090/version.json
+          curl -fsS http://127.0.0.1:8090/solver.worker.js >/dev/null
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/missing.js)" = 404
+      - name: Install browser test tools
+        run: |
+          npm install --no-save playwright@1.51.1
+          npx playwright install --with-deps chromium
+      - name: Test editor workflows in Chromium
+        run: |
+          python3 -m http.server 8080 --directory public &
+          node tests/browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-test-screenshots
+          path: /tmp/cargo-editor-screenshots
+          if-no-files-found: ignore

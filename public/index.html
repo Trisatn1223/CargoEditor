@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102e37">
+  <meta name="description" content="Build a Cargo Chief community level. Plan your cargo, check your solution locally and share your level code.">
+  <title>Cargo Chief — Level Workshop</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Cargo Chief level workshop"><span class="brand-icon"><i></i><i></i><i></i></span><span><strong>CARGO CHIEF</strong><small>LEVEL WORKSHOP</small></span></a>
+      <div class="top-center"><span class="status-dot"></span><span id="save-status">Saved on this device</span></div>
+      <div class="header-actions"><button class="button ghost" id="connection-button"><span id="connection-dot" class="status-dot offline"></span><span id="connection-label">Connecting</span></button><button class="button outline" id="open-button">↗ Open level code</button></div>
+    </header>
+    <section class="page-heading"><div><div class="eyebrow">DREAM ISLAND STUDIO <span>/</span> COMMUNITY CREATOR</div><h1>A little cargo. A clever puzzle.</h1><p>Build it, balance it, share it.</p></div><div class="level-identity"><span id="code-label">LEVEL CODE</span><button id="level-code" title="View level code">Not published</button><small id="source-code">Your next great level starts here.</small></div></section>
+    <div class="workflow"><nav aria-label="Editor steps" id="steps"></nav><div class="mode-pill"><i></i> EASY MODE <span>Y-axis only</span></div></div>
+    <main id="workspace" tabindex="-1"></main>
+    <footer class="bottom-bar"><div><span class="local-icon">◈</span><strong>Checked on your device</strong><span class="footer-note">Your browser does the thinking.</span></div><div class="footer-actions"><button class="button ghost" id="new-button">New level</button><button class="button primary" id="check-button">Check level <span>→</span></button></div></footer>
+  </div>
+  <dialog id="modal" aria-labelledby="modal-title"><div id="modal-content"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <noscript>This editor needs JavaScript to run the local level checker. No calculations run on the web server.</noscript>
+</body>
+</html>

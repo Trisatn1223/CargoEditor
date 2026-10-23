@@ -1,0 +1,5 @@
+# Use this block if the EXISTING Caddy container shares the proxy network.
+cargo-editor.dreamislandstudio.de {
+    encode zstd gzip
+    reverse_proxy cargo-editor:8080
+}

@@ -1,0 +1,12 @@
+# If your EXISTING Caddy runs in Docker, join its existing proxy network.
+# Start/update with: docker compose -f compose.yaml -f deploy/compose.proxy.yaml ...
+services:
+  editor:
+    networks:
+      proxy:
+        aliases:
+          - cargo-editor
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}

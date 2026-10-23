@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+upload
+godot
+*.zip
+.env*
+deploy/update.env
+docs
+README.md
