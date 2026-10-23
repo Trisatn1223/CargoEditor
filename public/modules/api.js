@@ -13,10 +13,34 @@ export class CargoAPI {
     let response;
     try { response = await this.fetcher(this.base + path, { method, mode: 'cors', credentials: 'omit', cache: 'no-store', signal: signal || AbortSignal.timeout(20000), headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }); }
     catch (error) { throw new ApiError(error.name === 'TimeoutError' ? 'The API took too long to respond. Your draft is safe.' : 'Cannot reach the level API. Check the /api reverse proxy on your server (or CORS when running locally). Your draft is safe.'); }
-    let data; try { data = await response.json(); } catch { throw new ApiError('The API returned an unreadable response.', response.status); }
+    // Read the status before insisting on JSON. Reverse proxies often return
+    // HTML for 404/502, and otherwise the useful HTTP error gets obscured.
+    const contentType = response.headers?.get('content-type') || '';
+    let raw;
+    try { raw = await response.text(); }
+    catch { throw new ApiError(`Could not read the API response (HTTP ${response.status}, ${path}).`, response.status); }
+    let data;
+    try { data = raw.trim() ? JSON.parse(raw) : null; }
+    catch { data = null; }
     if (!response.ok) {
-      const messages = { 401: 'Your player session is no longer valid. Use “Renew player session” in Connection.', 403: 'The API does not permit this action.', 404: 'This level is not public or does not exist.', 409: 'The API reported a conflict. Your draft has been kept.', 422: 'The API rejected the level data. The server contract may need updating.', 429: 'Too many requests. Please wait and try again.' };
-      throw new ApiError(messages[response.status] || `API request failed (${response.status}).`, response.status);
+      const messages = {
+        401: 'Your player session is no longer valid. Use “Renew player session” in Connection.',
+        403: 'The API does not permit this action.',
+        404: path.startsWith('/levels/') || path.startsWith('/me/levels/')
+          ? 'This level code was not found or is not accessible yet. Unpublished levels can only be loaded with their original player identity.'
+          : `API endpoint not found (HTTP 404 at ${path}). Check the /api Caddy proxy.`,
+        409: 'The API reported a conflict. Your draft has been kept.',
+        422: 'The API rejected the level data. The server contract may need updating.',
+        429: 'Too many requests. Please wait and try again.',
+        502: 'Gateway error (HTTP 502). Caddy cannot reach the API container; check the Docker network and /api proxy.',
+        503: 'The API is temporarily unavailable (HTTP 503).',
+        504: 'The API gateway timed out (HTTP 504).',
+      };
+      throw new ApiError(messages[response.status] || `API request failed (HTTP ${response.status} at ${path}).`, response.status);
+    }
+    if (data === null || typeof data !== 'object' || !raw.trim()) {
+      const responseType = /html/i.test(contentType) || /^\s*</.test(raw) ? 'HTML' : 'non-JSON';
+      throw new ApiError(`Expected JSON but got ${responseType} (HTTP ${response.status} at ${path}). Check the /api reverse proxy and whether the requested route exists.`, response.status);
     }
     return data;
   }
