@@ -8,17 +8,28 @@ import { CargoAPI, normalizeCode } from '../public/modules/api.js';
 const catalog = catalogFrom(JSON.parse(readFileSync(new URL('../public/presets.json', import.meta.url))), JSON.parse(readFileSync(new URL('../public/layouts.json', import.meta.url))));
 function draftWith(targets = { 0: 1 }, train = [0]) { const d = emptyDraft(); d.ships = [newShip(catalog.ships.find(p => p.id === 7))]; d.ships[0].targets = targets; d.train = train; return d; }
 const quick = { maxMs: 5000, maxStates: 50000 };
-test('Godot moment formula uses mean of lightest/heaviest, Y only', () => {
-  const m = compile(draftWith(), catalog), s = m.ships[0];
-  const cells = Array(9).fill(null); cells[6] = 0; cells[7] = 2;
-  assert.equal(balance(cells, s, m.containers), 2); // (1 + 3) / ((1 + 3) / 2), NOT / total
-  cells.fill(null); cells[3] = 2; assert.equal(balance(cells, s, m.containers), 0); // X ignored
+test('X-only moment formula uses the mean of lightest and heaviest', () => {
+  const m = compile(draftWith(), catalog), ship = m.ships[0];
+  const cells = Array(9).fill(null); cells[6] = 0; cells[8] = 2;
+  assert.equal(balance(cells, ship, m.containers), 1);
+  cells.fill(null); cells[3] = 2;
+  assert.equal(balance(cells, ship, m.containers), -1);
+  cells.fill(null); cells[1] = 2;
+  assert.equal(balance(cells, ship, m.containers), 0); // Y placement ignored
 });
-test('Easy mode matches current Godot Y comparison against max_x_variance', () => {
-  const c = structuredClone(catalog); const p = c.ships.find(s => s.id === 7); p.max_x_variance = 0; p.max_y_variance = 100;
+test('Easy editor compares X moment against max_x_variance', () => {
+  const c = structuredClone(catalog); const p = c.ships.find(s => s.id === 7);
+  p.max_x_variance = 0; p.max_y_variance = 100;
   const m = compile(draftWith(), c); const next = [...successors(initialState(m), m)];
   assert(!next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 0));
-  assert(next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 3));
+  assert(next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 4));
+});
+test('solver compares up to ten completed solution paths', () => {
+  const r = solve(draftWith({ 0: 3 }), catalog, { ...quick, maxSolutions: 10 });
+  assert.equal(r.status, 'solved');
+  assert.equal(r.minimum, 3);
+  assert(r.solutionsFound >= 1 && r.solutionsFound <= 10);
+  assert(replay(draftWith({ 0: 3 }), catalog, r.moves));
 });
 test('single delivery and already-on-board cargo produce actual minimums', () => {
   const d = draftWith({ 0: 3 }); const r = solve(d, catalog, quick); assert.equal(r.status, 'solved'); assert.equal(r.minimum, 3); assert(replay(d, catalog, r.moves));
