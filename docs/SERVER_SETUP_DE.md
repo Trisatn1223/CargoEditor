@@ -132,7 +132,7 @@ Erwartet: erfolgreicher Status und `Access-Control-Allow-Origin: https://cargo-e
 
 ## 5. Automatisch den neuesten Main-Stand bereitstellen
 
-Der Timer prüft ungefähr alle zwei Minuten `main`. Er baut nur bei einem neuen Commit, führt die Tests aus, prüft einen Probecontainer und ersetzt erst dann die laufende Version. Tests und Builds sind Wartungsarbeit beim Update; die Levelberechnungen laufen weiterhin ausschließlich im Browser.
+Der Timer prüft ungefähr alle 30 Minuten `main`. Er baut nur bei einem neuen Commit, führt die Tests aus, prüft einen Probecontainer und ersetzt erst dann die laufende Version. Tests und Builds sind Wartungsarbeit beim Update; die Levelberechnungen laufen weiterhin ausschließlich im Browser.
 
 ```bash
 cd /opt/cargo-editor
