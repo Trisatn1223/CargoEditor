@@ -8,21 +8,28 @@ import { CargoAPI, normalizeCode } from '../public/modules/api.js';
 const catalog = catalogFrom(JSON.parse(readFileSync(new URL('../public/presets.json', import.meta.url))), JSON.parse(readFileSync(new URL('../public/layouts.json', import.meta.url))));
 function draftWith(targets = { 0: 1 }, train = [0]) { const d = emptyDraft(); d.ships = [newShip(catalog.ships.find(p => p.id === 7))]; d.ships[0].targets = targets; d.train = train; return d; }
 const quick = { maxMs: 5000, maxStates: 50000 };
-test('X-only moment formula uses the mean of lightest and heaviest', () => {
+test('Easy mode Y balance changes across rows but not across columns', () => {
   const m = compile(draftWith(), catalog), ship = m.ships[0];
-  const cells = Array(9).fill(null); cells[6] = 0; cells[8] = 2;
-  assert.equal(balance(cells, ship, m.containers), 1);
-  cells.fill(null); cells[3] = 2;
+  const cells = Array(9).fill(null);
+  cells[0] = 2; // top left -> Y lever -1
   assert.equal(balance(cells, ship, m.containers), -1);
-  cells.fill(null); cells[1] = 2;
-  assert.equal(balance(cells, ship, m.containers), 0); // Y placement ignored
+  cells[0] = null; cells[2] = 2; // top right: same Y despite different X
+  assert.equal(balance(cells, ship, m.containers), -1);
+  cells[2] = null; cells[4] = 2; // centre -> Y lever 0
+  assert.equal(balance(cells, ship, m.containers), 0);
+  cells[4] = null; cells[8] = 2; // bottom right -> Y lever +1
+  assert.equal(balance(cells, ship, m.containers), 1);
+  cells.fill(null); cells[1] = 0; cells[7] = 2; // opposite Y moments cancel
+  assert.equal(balance(cells, ship, m.containers), 1);
 });
-test('Easy editor compares X moment against max_x_variance', () => {
-  const c = structuredClone(catalog); const p = c.ships.find(s => s.id === 7);
+test('Godot Easy compares the Y moment with max_x_variance (as implemented in game)', () => {
+  const c = structuredClone(catalog), p = c.ships.find(s => s.id === 7);
   p.max_x_variance = 0; p.max_y_variance = 100;
-  const m = compile(draftWith(), c); const next = [...successors(initialState(m), m)];
-  assert(!next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 0));
-  assert(next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 4));
+  const m = compile(draftWith(), c);
+  const next = [...successors(initialState(m), m)];
+  assert(!next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 0)); // top row forbidden
+  assert(next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 3)); // middle row allowed
+  assert(next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 5)); // X-coordinate irrelevant
 });
 test('solver compares up to ten completed solution paths', () => {
   const r = solve(draftWith({ 0: 3 }), catalog, { ...quick, maxSolutions: 10 });
