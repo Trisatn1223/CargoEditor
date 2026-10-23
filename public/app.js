@@ -50,7 +50,7 @@ function renderShip() {
   const total = Object.values(ship.targets).reduce((n, v) => n + v, 0);
   const raw = { slots: p.layout.slots, offset: p.center_offset, limit: p.max_x_variance };
   const x = balance(ship.initial, raw, new Map(catalog.containers.map(c => [c.id, c]))), limit = p.max_x_variance, at = Math.max(0, Math.min(100, 50 + (limit ? x / limit : Math.sign(x)) * 45));
-  return `<section class="editor">${palette()}<div class="stage"><header class="stage-header"><div><h2>Design your ship</h2><p>${p.layout.slots.length} cargo slots · ${draft.ships.length} ${draft.ships.length === 1 ? 'ship' : 'ships'} in this level</p></div><div class="ship-control"><select id="ship-select" class="ship-select" aria-label="Active ship">${draft.ships.map((s, i) => `<option value="${i}" ${i === activeShip ? 'selected' : ''}>Ship ${i + 1}</option>`).join('')}</select><button class="button square" data-action="add-ship" aria-label="Add a ship">+</button></div></header><div class="layer-tabs" role="group" aria-label="Ship editing layer"><button class="layer-tab ${layer === 'initial' ? 'active' : ''}" data-action="layer" data-layer="initial">Starting cargo</button><button class="layer-tab ${layer === 'zones' ? 'active' : ''}" data-action="layer" data-layer="zones">Allowed positions</button></div><div class="sea"><div class="compass">↔ X BALANCE</div>${shipGrid(ship, p)}<div class="sea-label">CARGO CHIEF / LEVEL WORKSHOP</div></div><div class="canvas-caption"><span><i class="caption-key"></i>${layer === 'initial' ? 'Cargo already on board when the ship arrives.' : 'Paint allowed positions for the selected cargo type.'}</span><button class="button ghost" data-action="delete-ship" aria-label="Remove current ship">Remove ship</button></div></div><aside class="panel inspector"><div><div class="section-label">TARGET MANIFEST <small>${total} / ${p.layout.slots.length}</small></div><p class="micro">What should this ship leave with?</p><div class="manifest" data-drop="target">${catalog.containers.filter(c => [0, 1, 4].includes(c.function_id)).map(c => `<div class="manifest-row">${box(c.id)}<label>${cargoName(c)}</label><div class="quantity"><button data-action="quantity" data-id="${c.id}" data-delta="-1" aria-label="Remove one ${cargoName(c)} from target" ${!ship.targets[c.id] ? 'disabled' : ''}>−</button><output>${ship.targets[c.id] || 0}</output><button data-action="quantity" data-id="${c.id}" data-delta="1" aria-label="Add one ${cargoName(c)} to target" ${total >= p.layout.slots.length ? 'disabled' : ''}>+</button></div></div>`).join('')}</div></div><div class="tip-box">No painted positions? That cargo can go anywhere. Multiple colours mean multiple allowed cargo types.</div><div class="balance-box"><div class="balance-top"><span>Starting X balance</span><b>${x.toFixed(2)} / ±${limit}</b></div><div class="balance-track"><i class="balance-pointer ${Math.abs(x) > limit ? 'bad' : ''}" style="--at:${at}%"></i></div><div class="balance-labels"><span>−${limit}</span><span>Balanced</span><span>+${limit}</span></div></div></aside></section>`;
+  return `<section class="editor">${palette()}<div class="stage"><header class="stage-header"><div><h2>Design your ship</h2><p>${p.layout.slots.length} cargo slots · ${draft.ships.length} ${draft.ships.length === 1 ? 'ship' : 'ships'} in this level</p>${draft.sourceCode ? `<div class="loaded-summary inline-summary">Loaded from ${esc(draft.sourceCode)} · ${ship.initial.filter(id => id !== null).length} starting containers · ${total} target containers</div>` : ""}</div><div class="ship-control"><select id="ship-select" class="ship-select" aria-label="Active ship">${draft.ships.map((s, i) => `<option value="${i}" ${i === activeShip ? 'selected' : ''}>Ship ${i + 1}</option>`).join('')}</select><button class="button square" data-action="add-ship" aria-label="Add a ship">+</button></div></header><div class="layer-tabs" role="group" aria-label="Ship editing layer"><button class="layer-tab ${layer === 'initial' ? 'active' : ''}" data-action="layer" data-layer="initial">Starting cargo</button><button class="layer-tab ${layer === 'zones' ? 'active' : ''}" data-action="layer" data-layer="zones">Allowed positions</button></div><div class="sea"><div class="compass">↔ X BALANCE</div>${shipGrid(ship, p)}<div class="sea-label">CARGO CHIEF / LEVEL WORKSHOP</div></div><div class="canvas-caption"><span><i class="caption-key"></i>${layer === 'initial' ? 'Cargo already on board when the ship arrives.' : 'Paint allowed positions for the selected cargo type.'}</span><button class="button ghost" data-action="delete-ship" aria-label="Remove current ship">Remove ship</button></div></div><aside class="panel inspector"><div><div class="section-label">TARGET MANIFEST <small>${total} / ${p.layout.slots.length}</small></div><p class="micro">What should this ship leave with?</p><div class="manifest" data-drop="target">${catalog.containers.filter(c => [0, 1, 4].includes(c.function_id)).map(c => `<div class="manifest-row">${box(c.id)}<label>${cargoName(c)}</label><div class="quantity"><button data-action="quantity" data-id="${c.id}" data-delta="-1" aria-label="Remove one ${cargoName(c)} from target" ${!ship.targets[c.id] ? 'disabled' : ''}>−</button><output>${ship.targets[c.id] || 0}</output><button data-action="quantity" data-id="${c.id}" data-delta="1" aria-label="Add one ${cargoName(c)} to target" ${total >= p.layout.slots.length ? 'disabled' : ''}>+</button></div></div>`).join('')}</div></div><div class="tip-box">No painted positions? That cargo can go anywhere. Multiple colours mean multiple allowed cargo types.</div><div class="balance-box"><div class="balance-top"><span>Starting X balance</span><b>${x.toFixed(2)} / ±${limit}</b></div><div class="balance-track"><i class="balance-pointer ${Math.abs(x) > limit ? 'bad' : ''}" style="--at:${at}%"></i></div><div class="balance-labels"><span>−${limit}</span><span>Balanced</span><span>+${limit}</span></div></div></aside></section>`;
 }
 function renderDepot() { return `<section class="editor wide-editor">${palette()}<div class="stage"><header class="stage-header"><div><h2>A little room to manoeuvre.</h2><p>Set the depot’s starting cargo. Empty slots leave room for later.</p></div><span class="tag">${draft.depot.filter(v => v !== null).length} / 4 OCCUPIED</span></header><div class="supply-area"><div class="depot-pad">${draft.depot.map((id, i) => `<button class="slot ${id === null ? 'empty' : ''}" data-action="depot-slot" data-drop="depot" data-index="${i}" aria-label="Depot slot ${i + 1}${id !== null ? ': ' + cargoName(cargo(id)) : ', empty'}">${id === null ? '' : box(id, `data-drag="depot" data-index="${i}" data-id="${id}"`)}</button>`).join('')}</div><p class="micro">A fixed 2 × 2 depot. Shared by every ship in your level.</p></div><div class="canvas-caption"><span>Stored containers do not affect ship balance.</span><button class="button primary" data-action="step" data-step="train">Set up the train →</button></div></div></section>`; }
 function renderTrain() { return `<section class="editor wide-editor">${palette()}<div class="stage"><header class="stage-header"><div><h2>Keep the cargo coming.</h2><p>The train delivers one container at a time, then repeats this sequence.</p></div><button class="button outline" data-action="auto-train">Auto-fill</button></header><div class="supply-area"><div class="train-area"><div class="train-line"><div class="locomotive" aria-label="Train engine"></div>${Array.from({ length: draft.train.length + 1 }, (_, i) => `<button class="train-insert" data-action="train-insert" data-drop="train" data-index="${i}" aria-label="Insert cargo at train position ${i + 1}">+</button>${i < draft.train.length ? `<div class="wagon drag-source" data-drag="train" data-index="${i}" data-id="${draft.train[i]}">${box(draft.train[i])}<small>${String(i + 1).padStart(2, '0')} · ${cargoName(cargo(draft.train[i]))}</small><button data-action="train-remove" data-index="${i}" aria-label="Remove train container ${i + 1}">×</button></div>` : ''}`).join('')}</div></div><p class="micro">${draft.train.length ? '↻ After the last container, the sequence starts again.' : 'Choose cargo and tap +, or drag it between wagons.'}</p></div><div class="canvas-caption"><span>${draft.train.length} / 200 sequence entries · Unwanted cargo can leave on the outbound train.</span><button class="button primary" data-action="step" data-step="review">Review level →</button></div></div></section>`; }
@@ -86,17 +86,58 @@ function confirmReset() {
   modal(`<div class="modal-body">${modalHead('Start a new level?')}<p>This clears all ships, cargo, depot slots, train entries and the local check. Saved levels stay on the API.</p><div class="modal-buttons"><button class="button outline" data-action="close">Keep editing</button><button class="button primary" data-action="reset">New level</button></div></div>`);
 }
 function openCode() { modal(`<div class="modal-body">${modalHead('Open a level code')}<p>Load a public level or one saved with this browser’s player identity. You will create a new copy; the original stays unchanged.</p><form id="load-form"><label class="field-label" for="code-input">Level code</label><input class="code-input" id="code-input" name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="ABCDE" required><div id="load-error" class="dialog-error" role="alert"></div><div class="modal-buttons"><button type="button" class="button outline" data-action="close">Cancel</button><button class="button primary" type="submit">Load a copy →</button></div></form></div>`); $('code-input').focus(); }
+function levelSummary(value) {
+  const ships = value.ships.length;
+  const starting = value.ships.reduce((n, ship) => n + ship.initial.filter(id => id !== null).length, 0);
+  const targets = value.ships.reduce((n, ship) => n + Object.values(ship.targets).reduce((total, count) => total + count, 0), 0);
+  const stored = value.depot.filter(id => id !== null).length;
+  return `${ships} ${ships === 1 ? 'ship' : 'ships'} · ${starting} starting containers · ${targets} target containers · ${stored} depot slots filled · ${value.train.length} train entries`;
+}
+function hasLocalWork() {
+  return Boolean(draft.saved || draft.sourceCode || draft.ships.length || draft.train.length || draft.depot.some(id => id !== null));
+}
+function applyLoadedCopy(next, code) {
+  // Do not mutate the API response, original published level, or existing token.
+  draft = next;
+  result = null;
+  uncertainPublish = false;
+  activeShip = 0;
+  step = 'ship';
+  layer = 'initial';
+  persist();
+  render();
+  closeModal();
+  toast(`Loaded ${code} · ${levelSummary(next)}`);
+}
 async function loadCode(event) {
-  event.preventDefault(); const button = event.target.querySelector('[type=submit]'); button.disabled = true; button.textContent = 'Loading…'; busy = true; const ticket = ++operation;
+  event.preventDefault();
+  const button = event.target.querySelector('[type=submit]');
+  const enteredCode = $('code-input').value;
+  button.disabled = true;
+  button.textContent = 'Loading…';
+  busy = true;
+  const ticket = ++operation;
   try {
-    const data = await api.load($('code-input').value), code = data.code || $('code-input').value.trim().toUpperCase();
+    const data = await api.load(enteredCode);
+    const code = data.code || enteredCode.trim().toUpperCase();
     const next = fromPayload(data.payload, catalog, code);
     if (ticket !== operation) return;
     busy = false;
-    modal(`<div class="modal-body">${modalHead('Your copy is ready')}<p>Replace the current local draft with a copy of ${esc(code)}? The original level will not be changed.</p><div class="modal-buttons"><button class="button outline" data-action="close">Keep current draft</button><button class="button primary" id="accept-copy">Open copy →</button></div></div>`);
-    $('accept-copy').onclick = () => { draft = next; result = null; uncertainPublish = false; activeShip = 0; step = 'ship'; layer = 'initial'; persist(); render(); closeModal(); toast(`Opened a new copy of ${code}.`); };
-  } catch (error) { $('load-error').textContent = error.message; button.disabled = false; button.textContent = 'Load a copy →'; }
-  finally { busy = false; }
+    if (!hasLocalWork()) {
+      // Opening into an empty workshop needs no second, easily missed click.
+      applyLoadedCopy(next, code);
+      return;
+    }
+    modal(`<div class="modal-body">${modalHead('Replace your current draft?')}<p>The level <strong>${esc(code)}</strong> was loaded successfully. To see it in the editor, replace your current local draft with a new copy. The original published level stays unchanged.</p><div class="loaded-summary">${esc(levelSummary(next))}</div><p class="micro">Your current unsaved changes will be replaced. Choose Keep editing to leave them untouched.</p><div class="modal-buttons"><button class="button outline" data-action="close">Keep editing</button><button class="button primary" id="accept-copy">Replace draft and open →</button></div></div>`);
+    $('accept-copy').onclick = () => applyLoadedCopy(next, code);
+  } catch (error) {
+    const target = $('load-error');
+    if (target) target.textContent = error.message;
+    button.disabled = false;
+    button.textContent = 'Load a copy →';
+  } finally {
+    busy = false;
+  }
 }
 function connection() { modal(`<div class="modal-body">${modalHead('Connection')}<span class="tag ${live ? '' : 'warning'}">${live ? 'LIVE PRESETS' : 'OFFLINE PRESETS'}</span><p style="margin-top:16px">${live ? 'Official presets are up to date. Your level calculations run entirely in this browser.' : 'You can keep designing with the bundled official preset snapshot. A live connection is required before publishing.'}</p><p>${esc(connectionError)}</p><p>API: ${esc(API_BASE)}<br>Player identity is saved only in this browser. No studio or service token is used.</p><div class="modal-buttons stack"><button class="button primary" data-action="reconnect">Retry connection</button><button class="button outline" data-action="renew">Renew player session</button></div><p style="margin-top:15px;margin-bottom:0">Renewing your session loses access to unpublished levels saved with the previous identity. Published levels can still be opened by code.</p></div>`); }
 async function refreshPresets() {
