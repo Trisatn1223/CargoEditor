@@ -12,7 +12,7 @@ export class CargoAPI {
   async request(path, { method = 'GET', body, token, signal } = {}) {
     let response;
     try { response = await this.fetcher(this.base + path, { method, mode: 'cors', credentials: 'omit', cache: 'no-store', signal: signal || AbortSignal.timeout(20000), headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }); }
-    catch (error) { throw new ApiError(error.name === 'TimeoutError' ? 'The API took too long to respond. Your draft is safe.' : 'Cannot reach the API. Check your connection or the server’s CORS setting. Your draft is safe.'); }
+    catch (error) { throw new ApiError(error.name === 'TimeoutError' ? 'The API took too long to respond. Your draft is safe.' : 'Cannot reach the level API. Check the /api reverse proxy on your server (or CORS when running locally). Your draft is safe.'); }
     let data; try { data = await response.json(); } catch { throw new ApiError('The API returned an unreadable response.', response.status); }
     if (!response.ok) {
       const messages = { 401: 'Your player session is no longer valid. Use “Renew player session” in Connection.', 403: 'The API does not permit this action.', 404: 'This level is not public or does not exist.', 409: 'The API reported a conflict. Your draft has been kept.', 422: 'The API rejected the level data. The server contract may need updating.', 429: 'Too many requests. Please wait and try again.' };
