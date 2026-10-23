@@ -8,7 +8,7 @@ export function normalizeCode(value) {
 }
 export class ApiError extends Error { constructor(message, status = 0) { super(message); this.status = status; } }
 export class CargoAPI {
-  constructor({ base = API_BASE, fetcher = fetch, storage = globalThis.localStorage } = {}) { this.base = base; this.fetcher = fetcher; this.storage = storage; this.token = null; }
+  constructor({ base = API_BASE, fetcher = fetch, storage } = {}) { this.base = base; this.fetcher = (...args) => fetcher(...args); try { this.storage = storage ?? globalThis.localStorage; } catch { this.storage = null; } this.token = null; }
   async request(path, { method = 'GET', body, token, signal } = {}) {
     let response;
     try { response = await this.fetcher(this.base + path, { method, mode: 'cors', credentials: 'omit', cache: 'no-store', signal: signal || AbortSignal.timeout(20000), headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }); }

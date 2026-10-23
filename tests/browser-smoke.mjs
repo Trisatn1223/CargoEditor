@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const screenshotDir = process.env.SCREENSHOT_DIR || '/tmp/cargo-editor-screenshots';
 mkdirSync(screenshotDir, { recursive: true });
-const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_EXECUTABLE || undefined, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'] });
 const errors = [], posts = [];
 const presets = JSON.parse(readFileSync(new URL('../public/presets.json', import.meta.url)));
@@ -15,21 +15,23 @@ let published = false, responseMode = 'success', savedPayload;
 await context.route('https://cargo-api.dreamislandstudio.de/**', async route => {
   const req = route.request(), url = new URL(req.url());
   let body, status = 200;
-  if (url.pathname === '/editor/presets') body = presets;
+  if (req.method() === 'OPTIONS') body = {};
+  else if (url.pathname === '/editor/presets') body = presets;
   else if (url.pathname === '/auth/anonymous') { body = { token: 'browser-test-player' }; status = 201; }
   else if (url.pathname === '/levels' && req.method() === 'POST') { posts.push(req.postDataJSON()); savedPayload = posts.at(-1).payload; if (responseMode === 'reject') { status = 422; body = { detail: 'Rejected' }; } else { body = { code: 'ABCDE', version: 1, published }; status = 201; } }
   else if (url.pathname === '/levels/ABCDE') body = { code: 'ABCDE', published: true, payload: savedPayload };
   else { status = 404; body = { detail: 'Not found' }; }
-  await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+  await route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': 'http://127.0.0.1:8080', 'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-allow-headers': 'authorization,content-type' }, body: JSON.stringify(body) });
 });
 const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
 await page.goto('http://127.0.0.1:8080');
-await page.getByText('API connected', { exact: true }).waitFor();
+await page.getByText('API connected', { exact: true }).waitFor({ timeout: 10000 }).catch(async error => { await page.locator('#connection-button').click(); console.error(await page.locator('body').innerText(), errors); throw error; });
 await page.getByRole('button', { name: 'Try an example' }).click();
 await page.screenshot({ path: screenshotDir + '/editor-desktop.png', fullPage: true });
 await page.locator('#check-button').click();
 await page.getByRole('heading', { name: 'Your level has a solution.' }).waitFor();
 assert(await page.locator('dialog').innerText().then(t => t.includes('Minimum 3 moves')));
+assert.equal(posts.length, 0, 'No level is uploaded during local checking');
 await page.locator('dialog [data-action="publish"]').click();
 await page.getByRole('heading', { name: 'Your level has a code.' }).waitFor();
 assert((await page.locator('dialog').innerText()).includes('AWAITING API APPROVAL'));
@@ -72,6 +74,24 @@ assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem('cargo-w
 await page.setViewportSize({ width: 390, height: 844 });
 await page.screenshot({ path: screenshotDir + '/editor-mobile.png', fullPage: true });
 assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+// Force a long enough search to exercise the cancellable worker modal.
+await page.setViewportSize({ width: 1440, height: 1000 });
+await page.evaluate(() => {
+  const saved = JSON.parse(localStorage.getItem('cargo-workshop-draft-v1'));
+  saved.draft.ships[0].initial.fill(null); saved.draft.ships[0].targets = { 4: 9 };
+  saved.draft.train = [4]; saved.draft.saved = null;
+  localStorage.setItem('cargo-workshop-draft-v1', JSON.stringify(saved));
+});
+await page.reload(); await page.getByText('API connected', { exact: true }).waitFor();
+await page.locator('#check-button').click();
+await page.getByRole('button', { name: 'Cancel check', exact: true }).click();
+assert.equal(await page.locator('dialog').evaluate(el => el.open), false);
+assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem('cargo-workshop-draft-v1')).draft)).ships[0].targets[4], 9);
+// Offline API still leaves the editor and local rules available.
+await context.unroute('https://cargo-api.dreamislandstudio.de/**');
+await context.route('https://cargo-api.dreamislandstudio.de/**', route => route.abort());
+await page.reload(); await page.getByText('Offline presets', { exact: true }).waitFor();
+assert(await page.getByText('Design your ship', { exact: true }).isVisible());
 assert.deepEqual(errors, []);
-console.log('PASS: local worker, minimum moves, pending/published flows, clipboard, full reset, load copy, invalidation, API rejection, drag/drop, persistence, mobile overflow; no browser errors.');
+console.log('PASS: local worker, minimum moves, pending/published flows, clipboard, full reset, load copy, invalidation, API rejection, drag/drop, persistence, mobile overflow, cancellation and offline fallback; no browser errors.');
 await browser.close();

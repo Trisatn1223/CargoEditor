@@ -90,3 +90,8 @@ test('unpublished own level fallback only with existing token', async () => {
 });
 test('malformed successful publish response is never a fabricated code', async () => { const api = new CargoAPI({ storage: memoryStorage(), fetcher: async url => new Response(JSON.stringify(url.endsWith('/anonymous') ? { token: 'test' } : { published: true })) }); await assert.rejects(() => api.create({}), /no valid code/); });
 test('published state requires explicit API confirmation', async () => { const api = new CargoAPI({ storage: memoryStorage(), fetcher: async url => new Response(JSON.stringify(url.endsWith('/anonymous') ? { token: 'test' } : { code: 'ABCDE' })) }); assert.equal((await api.create({})).published, false); });
+test('browser fetch is invoked without the API instance as its receiver', async () => {
+  let called = false;
+  const api = new CargoAPI({ storage: memoryStorage(), fetcher: function () { assert.equal(this, undefined); called = true; return Promise.resolve(new Response(JSON.stringify({ ships: [] }))); } });
+  await api.presets(); assert(called);
+});
