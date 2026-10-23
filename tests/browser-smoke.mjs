@@ -49,7 +49,21 @@ assert.equal(await page.locator('#level-code').innerText(), 'Not published');
 const cleared = await page.evaluate(() => JSON.parse(localStorage.getItem('cargo-workshop-draft-v1')).draft);
 assert.deepEqual(cleared.ships, []); assert.deepEqual(cleared.train, []); assert.deepEqual(cleared.depot, [null, null, null, null]);
 await page.locator('#open-button').click(); await page.locator('#code-input').fill('abcde'); await page.getByRole('button', { name: 'Load a copy' }).click();
-await page.locator('#accept-copy').click(); assert.equal(await page.locator('#source-code').innerText(), 'New copy of ABCDE');
+// A truly empty workshop must load the level immediately, without a second confirmation.
+await page.getByText('New copy of ABCDE', { exact: true }).waitFor();
+assert.equal(await page.locator('#accept-copy').count(), 0);
+const imported = await page.evaluate(() => JSON.parse(localStorage.getItem('cargo-workshop-draft-v1')).draft);
+assert.equal(imported.ships.length, 1);
+assert.equal(imported.ships[0].targets[0], 3);
+assert.deepEqual(imported.train, [0]);
+assert.equal(await page.locator('#source-code').innerText(), 'New copy of ABCDE');
+// When a user already has work, a copy must not silently overwrite it.
+await page.locator('#open-button').click(); await page.locator('#code-input').fill('abcde');
+await page.getByRole('button', { name: 'Load a copy' }).click();
+await page.getByRole('heading', { name: 'Replace your current draft?' }).waitFor();
+assert.equal((await page.locator('dialog').innerText()).includes('starting containers'), true);
+assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem('cargo-workshop-draft-v1')).draft)).ships[0].targets[0], 3);
+await page.locator('#accept-copy').click();
 assert.equal(await page.locator('#level-code').innerText(), 'Not published');
 await page.getByRole('button', { name: 'Add one Standard 1 to target', exact: true }).click();
 await page.locator('#check-button').click(); await page.getByRole('heading', { name: 'Your level has a solution.' }).waitFor();
