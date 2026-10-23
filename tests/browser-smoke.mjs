@@ -27,6 +27,7 @@ const page = await context.newPage(); page.on('pageerror', error => errors.push(
 await page.goto('http://127.0.0.1:8080');
 await page.getByText('API connected', { exact: true }).waitFor({ timeout: 10000 }).catch(async error => { await page.locator('#connection-button').click(); console.error(await page.locator('body').innerText(), errors); throw error; });
 await page.getByRole('button', { name: 'Try an example' }).click();
+assert.equal(await page.locator('[data-action="export-draft"], [data-action="export-solution"]').count(), 0);
 await page.screenshot({ path: screenshotDir + '/editor-desktop.png', fullPage: true });
 await page.locator('#check-button').click();
 await page.getByRole('heading', { name: 'Your level has a solution.' }).waitFor({ timeout: 12000 }).catch(async error => {
@@ -34,7 +35,7 @@ await page.getByRole('heading', { name: 'Your level has a solution.' }).waitFor(
   console.error('Browser errors:', errors);
   throw error;
 });
-assert(await page.locator('dialog').innerText().then(t => t.includes('Minimum 3 moves')));
+assert(await page.locator('dialog').innerText().then(t => t.includes('Best route: 3 moves')));
 assert.equal(posts.length, 0, 'No level is uploaded during local checking');
 await page.locator('dialog [data-action="publish"]').click();
 await page.getByRole('heading', { name: 'Your level has a code.' }).waitFor();
@@ -52,7 +53,7 @@ await page.locator('#accept-copy').click(); assert.equal(await page.locator('#so
 assert.equal(await page.locator('#level-code').innerText(), 'Not published');
 await page.getByRole('button', { name: 'Add one Standard 1 to target', exact: true }).click();
 await page.locator('#check-button').click(); await page.getByRole('heading', { name: 'Your level has a solution.' }).waitFor();
-assert((await page.locator('dialog').innerText()).includes('Minimum 4 moves'));
+assert((await page.locator('dialog').innerText()).includes('Best route: 4 moves'));
 published = true; await page.locator('dialog [data-action="publish"]').click(); await page.getByRole('heading', { name: 'A new challenge is ready.' }).waitFor();
 assert.equal(posts.length, 2);
 await page.locator('dialog [data-action="close"]').click();
