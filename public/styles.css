@@ -78,3 +78,23 @@ dialog:has(#search-progress) .modal-body{padding:clamp(26px,4vw,48px)}
   .step{padding:8px 10px}
   dialog:has(#search-progress) .modal-body{padding:24px 18px}
 }
+
+/* Make successful level imports unmistakable without hiding existing work. */
+.loaded-summary{
+  border:1px solid #96c7bc;
+  background:#e5f4ef;
+  color:#19594f;
+  padding:12px 14px;
+  border-radius:11px;
+  font-size:12px;
+  font-weight:650;
+  line-height:1.65;
+  margin:14px 0;
+}
+.loaded-summary.inline-summary{
+  max-width:540px;
+  padding:6px 11px;
+  margin:9px 0 0;
+  border-radius:8px;
+  font-size:11px;
+}
