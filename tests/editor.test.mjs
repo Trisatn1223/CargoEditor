@@ -131,3 +131,18 @@ test('Unexpected HTML on successful GET identifies endpoint and HTTP status', as
   await assert.rejects(() => api.load('ABCDE'), error =>
     error.status === 200 && /expected json.*html.*http 200 at \/levels\/abcde/i.test(error.message));
 });
+
+test('imported level inherits preset cargo only when ship fields were omitted', () => {
+  const payload = toPayload(draftWith(), catalog, 1);
+  payload.ships = [{ preset_id: 0 }];
+  const inherited = fromPayload(payload, catalog, 'IWNMTC');
+  assert.equal(inherited.ships.length, 1);
+  assert.equal(inherited.ships[0].initial[8], 1);
+  assert.equal(inherited.ships[0].targets[0], 2);
+  assert.equal(inherited.ships[0].targets[1], 1);
+  assert.equal(inherited.ships[0].zones[7].includes(0), true);
+  payload.ships = [{ preset_id: 0, initial_load: [], target_load: [{ container_type_id: 0, count: 1 }], target_zones: [] }];
+  const explicitEmpty = fromPayload(payload, catalog, 'IWNMTC');
+  assert.equal(explicitEmpty.ships[0].initial.every(id => id === null), true);
+  assert.deepEqual(explicitEmpty.ships[0].targets, { 0: 1 });
+});
