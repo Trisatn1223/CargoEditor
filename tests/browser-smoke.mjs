@@ -29,7 +29,11 @@ await page.getByText('API connected', { exact: true }).waitFor({ timeout: 10000 
 await page.getByRole('button', { name: 'Try an example' }).click();
 await page.screenshot({ path: screenshotDir + '/editor-desktop.png', fullPage: true });
 await page.locator('#check-button').click();
-await page.getByRole('heading', { name: 'Your level has a solution.' }).waitFor();
+await page.getByRole('heading', { name: 'Your level has a solution.' }).waitFor({ timeout: 12000 }).catch(async error => {
+  console.error('Check dialog at failure:', await page.locator('dialog').innerText().catch(() => 'not open'));
+  console.error('Browser errors:', errors);
+  throw error;
+});
 assert(await page.locator('dialog').innerText().then(t => t.includes('Minimum 3 moves')));
 assert.equal(posts.length, 0, 'No level is uploaded during local checking');
 await page.locator('dialog [data-action="publish"]').click();
