@@ -117,7 +117,13 @@ async function checkLevel() {
   try {
     worker = new Worker(new URL('./solver.worker.js', import.meta.url), { type: 'module' });
     worker.onmessage = ({ data }) => {
-      if (data.type === 'progress') { $('search-states').textContent = `${data.progress.explored.toLocaleString('en')} positions explored`; $('search-time').textContent = `${(data.progress.elapsed / 1000).toFixed(1)} s`; }
+      if (data.type === 'progress') {
+        const used = Math.min(SEARCH_LIMITS.maxStates, data.progress.states);
+        $('search-progress').value = used;
+        $('search-budget').textContent = `Search budget used: ${(used / SEARCH_LIMITS.maxStates * 100).toFixed(1)}% · ${data.progress.found} / ${SEARCH_LIMITS.maxSolutions} solutions`;
+        $('search-states').textContent = `${data.progress.explored.toLocaleString('en')} positions explored`;
+        $('search-time').textContent = `${(data.progress.elapsed / 1000).toFixed(1)} s`;
+      }
       else { worker.terminate(); worker = null; if (data.type === 'error') { showError('Check could not finish', data.message); return; } result = data.result; render(); if (result.status === 'solved') showReady(); else showError(result.status === 'limit' ? 'Not fully checked yet' : 'No solution in the local rules', result.status === 'limit' ? 'The search limit was reached. Your level may still be possible. Try fewer containers or a shorter train sequence, then check again.' : 'All reachable states were explored without a solution. Adjust your target cargo, train sequence or allowed positions and try again.'); }
     };
     worker.onerror = () => { worker?.terminate(); worker = null; showError('Local checker unavailable', 'The worker could not start. Open this editor through its web address, not by double-clicking index.html.'); };
