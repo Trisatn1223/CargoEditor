@@ -21,6 +21,13 @@ jobs:
           node --check public/app.js
           node --check public/solver.worker.js
           bash -n deploy/update.sh
+      - name: Simulate restrictive server checkout permissions
+        run: |
+          # Root git clones using umask 077 can leave files at 0600 and folders at 0700.
+          # The runtime image must normalize those permissions for Nginx uid 101.
+          chmod 600 deploy/nginx.conf
+          find public -type d -exec chmod 700 {} +
+          find public -type f -exec chmod 600 {} +
       - name: Build runtime image (includes tests)
         run: docker build --build-arg BUILD_COMMIT=${{ github.sha }} -t cargo-editor:ci .
       - name: Test read-only static container
