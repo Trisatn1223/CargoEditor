@@ -13,7 +13,7 @@ Source: the user's Godot.zip supplied on 23 October 2026. Only the derived ship 
 | Depot has four slots | `Level/BasisLevel.tscn` | Four cells; occupancy persists between ships |
 | Exact per-type target counts, no extra types | `Objects/Schiff/schiff.gd`, `checkFuerLadungsAnzahl` | Exact tally equality |
 | Restrictions apply to each container type only if that type has target positions | `schiff.gd`, `checkForLadungsPosition` | A type with no restrictions can occupy any slot |
-| X lever arm = slot position-in-zone + zone offset + ship offset | `schiff.gd`, `berechneSchwerpunktsVektoren` | Scene-derived lever + API `center_offset[1]` |
+| X lever arm = slot position-in-zone + zone offset + ship offset | `schiff.gd`, `berechneSchwerpunktsVektoren` | Scene-derived X lever + API `center_offset[0]` |
 | X balance = sum(weight × X lever) / ((lightest + heaviest) / 2) | `schiff.gd`, `getCurrentLadungsverteilung` | Same formula; empty ship = 0 |
 | The **editor now checks X** against max X variance (different from the uploaded Godot Easy branch, which checks Y) | `LevelManager.gd`, `eZugBeendet` | Deliberately uses `max_x_variance`, matching current source; never checks X position |
 | Food without a refrigerator becomes ID 5 | `Objects/Container/container.gd`, `eZugBeendet` | Food transforms into waste after a move |
