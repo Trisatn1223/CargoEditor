@@ -16,7 +16,7 @@ export function balance(cells, ship, containers) {
     if (id === null) return;
     const w = containers.get(id).weight;
     light = Math.min(light, w); heavy = Math.max(heavy, w);
-    moment += w * (ship.slots[i].lever[1] + ship.offset[1]);
+    moment += w * (ship.slots[i].lever[0] + ship.offset[0]);
   });
   return heavy ? moment / ((light + heavy) / 2) : 0;
 }
