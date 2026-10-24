@@ -5,6 +5,7 @@ import { emptyDraft, newShip, catalogFrom, toPayload, fromPayload, stars, valida
 import { compile, initialState, stateKey, successors, balance, effects, matchesGoal, heuristic, replay, impossibleGoalReason } from '../public/modules/rules.js';
 import { solve } from '../public/modules/solver.js';
 import { CargoAPI, normalizeCode } from '../public/modules/api.js';
+import { ENABLE_PRESET_7_UPLOAD_WORKAROUND } from '../public/config.js';
 import { compatiblePresetPair, offeredPresetWorkaround, remapUploadPayload } from '../public/modules/preset-workaround.js';
 const catalog = catalogFrom(JSON.parse(readFileSync(new URL('../public/presets.json', import.meta.url))), JSON.parse(readFileSync(new URL('../public/layouts.json', import.meta.url))));
 function draftWith(targets = { 0: 1 }, train = [0]) { const d = emptyDraft(); d.ships = [newShip(catalog.ships.find(p => p.id === 7))]; d.ships[0].targets = targets; d.train = train; return d; }
@@ -262,6 +263,11 @@ test('422 ship variance diagnostic exposes the actual sent number but no credent
 });
 
 test('opt-in preset 7 workaround uses only exact geometry and physics equivalence', () => {
+  if (!ENABLE_PRESET_7_UPLOAD_WORKAROUND) {
+    assert.equal(compatiblePresetPair(catalog), null);
+    assert.equal(offeredPresetWorkaround({ status: 422, message: 'Schiff 7.max_x_variance: rejected' }, draftWith(), catalog), null);
+    return;
+  }
   assert.deepEqual(compatiblePresetPair(catalog), { fromId: 7, toId: 8 });
   const error = { status: 422, message: 'The API rejected this level: Schiff 7.max_x_variance: Zahl zwischen 0 und 100000 erforderlich.' };
   const d = draftWith({ 0: 1 }, [0]);
@@ -280,6 +286,10 @@ test('opt-in preset 7 workaround uses only exact geometry and physics equivalenc
   assert.equal(compatiblePresetPair(copy), null);
 });
 test('opt-in preset 7 workaround remaps only ship ID and preserves every game setting', () => {
+  if (!ENABLE_PRESET_7_UPLOAD_WORKAROUND) {
+    assert.throws(() => remapUploadPayload({ ships: [{ preset_id: 7 }] }, { fromId: 7, toId: 8 }, catalog), /no longer compatible/i);
+    return;
+  }
   const d = draftWith({ 0: 1 }, [0, 1, 0]);
   d.depot[3] = 0;
   d.ships[0].initial[1] = 1;
