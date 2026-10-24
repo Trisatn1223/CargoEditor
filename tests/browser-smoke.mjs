@@ -3,6 +3,7 @@
 import { createRequire } from 'node:module';
 import { readFileSync, mkdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
+import { ENABLE_PRESET_7_UPLOAD_WORKAROUND } from '../public/config.js';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const screenshotDir = process.env.SCREENSHOT_DIR || '/tmp/cargo-editor-screenshots';
@@ -88,6 +89,7 @@ assert(!(await page.locator('#publish-error').innerText()).includes('do-not-echo
 assert.equal(await page.locator('#level-code').innerText(), 'Not published');
 await page.locator('dialog [data-action="close"]').click();
 // Temporary fallback is offered ONLY when a server 422 names ship 7.
+if (ENABLE_PRESET_7_UPLOAD_WORKAROUND) {
 // The old draft stays on preset 7 until explicit user approval and API success.
 responseMode = 'variance';
 await page.locator('#check-button').click();
@@ -113,6 +115,7 @@ assert.equal(current.saved.workaround.fromId, 7);
 assert.equal(current.saved.workaround.toId, 8);
 assert((await page.locator('dialog').innerText()).includes('Temporary workaround applied'));
 await page.locator('dialog [data-action="close"]').click();
+}
 responseMode = 'success';
 // Pointer drag from library to ship, then slot-to-slot, without duplication.
 const source = page.locator('[data-drag="palette"][data-id="1"]'); const destination = page.locator('[data-drop="ship"][data-index="3"]');
