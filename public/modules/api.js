@@ -6,6 +6,24 @@ export function normalizeCode(value) {
   if (!/^[A-Z0-9]{5,12}$/.test(code)) throw new Error('Enter a valid level code (5–12 letters or digits).');
   return code;
 }
+// Render validation hints, not Pydantic's echoed "input" values (they may
+// contain user-provided data). Never log or expose authorization tokens.
+export function validationMessage(responseData) {
+  const detail = responseData?.detail;
+  const safe = value => String(value).replace(/[\x00-\x1f\x7f]/g, ' ').slice(0, 180);
+  if (Array.isArray(detail)) {
+    const items = detail.slice(0, 4).map(issue => {
+      if (!issue || typeof issue !== 'object') return '';
+      const path = Array.isArray(issue.loc) ? issue.loc.map(part => safe(part)).join('.') : '';
+      const message = typeof issue.msg === 'string' ? safe(issue.msg) : 'Invalid value';
+      return `${path ? path + ': ' : ''}${message}`;
+    }).filter(Boolean);
+    if (items.length) return items.join(' | ');
+  }
+  if (typeof detail === 'string') return safe(detail);
+  if (typeof responseData?.message === 'string') return safe(responseData.message);
+  return 'The API did not provide validation details.';
+}
 export class ApiError extends Error { constructor(message, status = 0) { super(message); this.status = status; } }
 export class CargoAPI {
   constructor({ base = API_BASE, fetcher = fetch, storage } = {}) { this.base = base; this.fetcher = (...args) => fetcher(...args); try { this.storage = storage ?? globalThis.localStorage; } catch { this.storage = null; } this.token = null; }
@@ -30,7 +48,7 @@ export class CargoAPI {
           ? 'This level code was not found or is not accessible yet. Unpublished levels can only be loaded with their original player identity.'
           : `API endpoint not found (HTTP 404 at ${path}). Check the /api Caddy proxy.`,
         409: 'The API reported a conflict. Your draft has been kept.',
-        422: 'The API rejected the level data. The server contract may need updating.',
+        422: `The API rejected this level (HTTP 422): ${validationMessage(data)}. Your draft has been kept.`,
         429: 'Too many requests. Please wait and try again.',
         502: 'Gateway error (HTTP 502). Caddy cannot reach the API container; check the Docker network and /api proxy.',
         503: 'The API is temporarily unavailable (HTTP 503).',
