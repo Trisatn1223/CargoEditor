@@ -38,11 +38,11 @@ These defects are documented rather than silently patching an uploaded game proj
 
 ## Search and correctness scope
 
-A* is used for normal cargo, with an admissible lower bound equal to missing plus surplus cargo across remaining ships. Effects switch to Dijkstra (`h = 0`) because a transformation can change several counts at once. Every generated move costs one. A returned solved result is optimal **under the rules above**, and the witness is replayed against that same rule module before success is reported.
+A* is used for all supported cargo. With ordinary cargo, an admissible lower bound counts missing and surplus container types on remaining ships. When food can turn into waste as a side effect, the bound excludes free food-surplus removal and waste-deficit filling, but still counts unavoidable transfers of other types. This preserves optimality while searching more efficiently than plain Dijkstra. Every generated move costs one. A returned solved result is optimal **under the rules above**, and the witness is replayed against that same rule module before success is reported.
 
-The queue and visited-state budgets are bounded. At 2,000,000 states/queued nodes or 180 seconds, the result is `limit`, not `impossible`. The UI offers cancellation by terminating the Web Worker. Only an exhausted queue can produce `impossible`. Up to 10 optimal terminal routes are collected before the search stops, and the shortest is selected.
+The queue and visited-state budgets are bounded. At 2,000,000 states/queued nodes or 180 seconds, the result is `limit`, not `impossible`. The UI offers cancellation by terminating the Web Worker. Only an exhausted queue can produce `impossible`. The search stores up to 10 equal-cost incoming transitions per state and reconstructs up to 10 **distinct** optimal routes, even when they merge into the same final game state. The move count remains the primary optimum; among equal-length routes, less depot handling and fewer outbound transfers are preferred. Depot slot order remains part of the state key so the replayed route uses the exact physical slots.
 
-The solver is deliberately local. No moves or draft are sent while checking. The optional downloaded witness uses an editor-only move format (`ship`, `container_type_id`, `from`, `to`); it is **not** sent to `/service/levels/{code}/submit-solutions`, whose replay contract is unspecified and requires a secret service role. The normal publication POST contains only the documented community payload.
+The solver is deliberately local. No moves or draft are sent while checking. The local solution uses an editor-only move format (`ship`, `container_type_id`, `from`, `to`); it is **not** sent to `/service/levels/{code}/submit-solutions`, whose replay contract is unspecified and requires a secret service role. The normal publication POST contains only the documented community payload.
 
 ## API-owned publication
 
