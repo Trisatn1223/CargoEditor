@@ -2,19 +2,20 @@ import { API_BASE, RULES_VERSION, SEARCH_LIMITS } from './config.js';
 import { CargoAPI } from './modules/api.js';
 import { emptyDraft, newShip, catalogFrom, validate, toPayload, fromPayload, stars, copy } from './modules/model.js';
 import { compile, balance } from './modules/rules.js';
+import { offeredPresetWorkaround, compatiblePresetPair, remapUploadPayload } from './modules/preset-workaround.js';
 const $ = id => document.getElementById(id);
 const esc = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const STORE = 'cargo-workshop-draft-v1';
 const api = new CargoAPI();
 let catalog, layouts, draft = emptyDraft(), step = 'ship', layer = 'initial', activeShip = 0, selected = 0, result = null, worker = null, live = false, busy = false, uncertainPublish = false, connectionError = '', saveFailed = false;
-let drag = null, toastTimer, operation = 0;
+let drag = null, toastTimer, operation = 0, suggestedWorkaround = null;
 const steps = ['ship', 'depot', 'train', 'review'];
 function cargo(id) { return catalog.containers.find(c => c.id === id); }
 function cargoName(c) { if (!c) return 'Unknown cargo'; return c.function_id === 1 ? 'Refrigerated' : c.function_id === 4 ? 'Food' : c.id === 5 ? 'Waste' : `Standard ${c.weight}`; }
 function cargoColor(c) { const a = c?.color_rgba; return Array.isArray(a) && a.length >= 3 && a.slice(0, 3).every(Number.isFinite) ? `rgb(${a.slice(0, 3).map(n => Math.round(Math.max(0, Math.min(1, n)) * 255)).join(',')})` : '#b6c6ba'; }
 function box(id, attrs = '') { const c = cargo(id); return `<div class="cargo ${attrs ? 'drag-source' : ''}" style="--cargo:${cargoColor(c)}" ${attrs}><span>${c?.function_id === 1 ? '❄' : c?.function_id === 4 ? 'F' : c?.id === 5 ? 'W' : c?.weight ?? '?'}</span></div>`; }
 function persist() { try { localStorage.setItem(STORE, JSON.stringify({ version: 1, draft, uncertainPublish })); saveFailed = false; } catch { saveFailed = true; } $('save-status').textContent = saveFailed ? 'Draft is in memory only' : 'Saved on this device'; }
-function mutate(fn) { if (busy) return; if (draft.saved) draft.sourceCode = draft.saved.code; fn(); draft.saved = null; result = null; uncertainPublish = false; persist(); render(); }
+function mutate(fn) { if (busy) return; if (draft.saved) draft.sourceCode = draft.saved.code; fn(); draft.saved = null; result = null; uncertainPublish = false; suggestedWorkaround = null; persist(); render(); }
 function toast(message) { $('toast').textContent = message; $('toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 3500); }
 function modal(content, { locked = false } = {}) { $('modal-content').innerHTML = content; $('modal').dataset.locked = String(locked); if (!$('modal').open) $('modal').showModal(); }
 function closeModal() { if (!busy && !worker) $('modal').close(); }
@@ -80,7 +81,7 @@ function paintSlot(index, id = selected) {
   const s = draft.ships[activeShip]; if (!s) return;
   mutate(() => { if (layer === 'initial') s.initial[index] = id; else if (id === null) s.zones[index] = []; else if (s.zones[index].includes(id)) s.zones[index] = s.zones[index].filter(v => v !== id); else s.zones[index].push(id); });
 }
-function resetDraft() { operation++; draft = emptyDraft(); result = null; uncertainPublish = false; activeShip = 0; step = 'ship'; layer = 'initial'; selected = catalog.containers[0].id; persist(); render(); $('modal').close(); }
+function resetDraft() { operation++; draft = emptyDraft(); result = null; uncertainPublish = false; suggestedWorkaround = null; activeShip = 0; step = 'ship'; layer = 'initial'; selected = catalog.containers[0].id; persist(); render(); $('modal').close(); }
 function confirmReset() {
   if (!draft.ships.length && !draft.train.length && draft.depot.every(v => v === null)) { resetDraft(); return; }
   modal(`<div class="modal-body">${modalHead('Start a new level?')}<p>This clears all ships, cargo, depot slots, train entries and the local check. Saved levels stay on the API.</p><div class="modal-buttons"><button class="button outline" data-action="close">Keep editing</button><button class="button primary" data-action="reset">New level</button></div></div>`);
@@ -101,6 +102,7 @@ function applyLoadedCopy(next, code) {
   draft = next;
   result = null;
   uncertainPublish = false;
+  suggestedWorkaround = null;
   activeShip = 0;
   step = 'ship';
   layer = 'initial';
@@ -183,7 +185,10 @@ function showError(title, message) { modal(`<div class="modal-body center"><div 
 function describeEndpoint(e) { return e.kind === 'train' ? 'incoming train' : e.kind === 'outbound' ? 'outbound train' : `${e.kind} slot ${e.index + 1}`; }
 function solutionDetails() { return result?.moves ? `<details><summary>View local solution (${result.minimum} moves)</summary><ol class="solution-list">${result.moves.map(m => `<li>Ship ${m.ship + 1}: ${esc(cargoName(cargo(m.container_type_id)))} · ${describeEndpoint(m.from)} → ${describeEndpoint(m.to)}</li>`).join('')}</ol></details>` : ''; }
 function showReady() {
-  modal(`<div class="modal-body center"><div class="result-icon">✓</div><span class="tag">LOCAL CHECK COMPLETE</span><h2 id="modal-title" style="margin-top:13px">Your level has a solution.</h2><p>Best route: ${result.minimum} ${result.minimum === 1 ? 'move' : 'moves'}. Compared ${result.solutionsFound ?? 1} distinct optimal ${(result.solutionsFound ?? 1) === 1 ? 'route' : 'routes'} locally.${result.searchComplete === false ? ' Additional equally short routes may exist, but the shortest move count is proven.' : ''}</p>${thresholds(result.minimum)}<button class="button primary full" data-action="publish" ${uncertainPublish ? 'disabled' : ''}>Publish level ↗</button><p style="margin:12px 0 0">The API assigns your level code. Public availability depends on the API’s approval status.</p><div id="publish-error" class="dialog-error" role="alert">${uncertainPublish ? 'The previous upload may have been saved. Check your saved levels before creating another copy.' : ''}</div>${uncertainPublish ? '<button class="button outline full" data-action="recover">Check my saved levels</button>' : ''}${solutionDetails()}<button class="button ghost" data-action="close" style="margin-top:14px">Keep editing</button></div>`);
+  const alternative = suggestedWorkaround && compatiblePresetPair(catalog, suggestedWorkaround.fromId, suggestedWorkaround.toId)
+    ? `<div class="tip-box" style="margin-top:12px;text-align:left"><p><strong>Temporary API workaround (experimental)</strong></p><p>Preset ${suggestedWorkaround.fromId} was rejected. Approved preset ${suggestedWorkaround.toId} uses the same ship geometry and physics. You can review a one-time upload using preset ${suggestedWorkaround.toId}. The API may reject it too.</p><button class="button outline full" data-action="preview-preset-workaround">Review alternative preset ${suggestedWorkaround.toId} →</button></div>`
+    : '';
+  modal(`<div class="modal-body center"><div class="result-icon">✓</div><span class="tag">LOCAL CHECK COMPLETE</span><h2 id="modal-title" style="margin-top:13px">Your level has a solution.</h2><p>Best route: ${result.minimum} ${result.minimum === 1 ? 'move' : 'moves'}. Compared ${result.solutionsFound ?? 1} distinct optimal ${(result.solutionsFound ?? 1) === 1 ? 'route' : 'routes'} locally.${result.searchComplete === false ? ' Additional equally short routes may exist, but the shortest move count is proven.' : ''}</p>${thresholds(result.minimum)}<button class="button primary full" data-action="publish" ${uncertainPublish ? 'disabled' : ''}>Publish level ↗</button><p style="margin:12px 0 0">The API assigns your level code. Public availability depends on the API’s approval status.</p><div id="publish-error" class="dialog-error" role="alert">${uncertainPublish ? 'The previous upload may have been saved. Check your saved levels before creating another copy.' : ''}</div>${uncertainPublish ? '<button class="button outline full" data-action="recover">Check my saved levels</button>' : ''}${alternative}${solutionDetails()}<button class="button ghost" data-action="close" style="margin-top:14px">Keep editing</button></div>`);
 }
 async function publish() {
   if (busy || result?.status !== 'solved' || draft.saved || uncertainPublish) return;
@@ -193,18 +198,79 @@ async function publish() {
     if (changed || !result) throw new Error('Official presets changed. Run the local check again before publishing.');
     const payload = toPayload(draft, catalog, result.minimum);
     button.textContent = 'Publishing…'; posting = true; uncertainPublish = true; persist();
-    const saved = await api.create(payload); draft.saved = saved; uncertainPublish = false; persist(); busy = false; render(); showCode();
+    const saved = await api.create(payload); draft.saved = saved; uncertainPublish = false; suggestedWorkaround = null; persist(); busy = false; render(); showCode();
   } catch (error) {
+    suggestedWorkaround = offeredPresetWorkaround(error, draft, catalog);
     uncertainPublish = posting && (!error.status || error.status >= 500 || error.message.includes('accepted')); persist();
     busy = false; $('modal').dataset.locked = 'false'; render();
     if (result?.status === 'solved') { showReady(); $('publish-error').textContent = error.message + (uncertainPublish ? ' The request may have reached the API. Check your saved levels before trying again.' : ''); }
     else showError('Please check the level again', error.message);
   } finally { busy = false; }
 }
+
+// TEMPORARY opt-in workaround for the API's rejected ship preset 7.
+// Removal: set ENABLE_PRESET_7_UPLOAD_WORKAROUND=false in config.js.
+function previewPresetWorkaround() {
+  const plan = suggestedWorkaround;
+  if (busy || worker || result?.status !== 'solved' || !plan ||
+      !compatiblePresetPair(catalog, plan.fromId, plan.toId)) {
+    toast('No compatible alternative is available.');
+    return;
+  }
+  modal(`<div class="modal-body">${modalHead('Try a temporary ship-preset workaround?')}
+    <p>The API rejected ship preset <strong>${plan.fromId}</strong>. You can retry with official preset <strong>${plan.toId}</strong> for ${plan.count} ${plan.count === 1 ? 'ship' : 'ships'}.</p>
+    <p>Both presets share the same ship scene, slots, balance limits and centre offset. The upload retains every configured starting container, target, allowed position, depot slot and train entry.</p>
+    <p><strong>Warning:</strong> the API will store preset ${plan.toId}, NOT ${plan.fromId}. The alternative's default cargo differs, so you should reopen the saved level and verify it in the game. The API can still reject this upload.</p>
+    <p>Your current local draft is changed only if the API returns a valid new level code.</p>
+    <div class="modal-buttons"><button class="button outline" data-action="close">Cancel</button>
+    <button class="button primary" data-action="confirm-preset-workaround">Upload using preset ${plan.toId} →</button></div></div>`);
+}
+async function publishWithPresetWorkaround() {
+  if (busy || worker || result?.status !== 'solved' || draft.saved || uncertainPublish || !suggestedWorkaround) return;
+  const plan = { ...suggestedWorkaround };
+  if (!compatiblePresetPair(catalog, plan.fromId, plan.toId)) {
+    showError('No compatible alternative', 'The approved presets changed. Your draft was not uploaded.');
+    return;
+  }
+  suggestedWorkaround = null; // No automatic or repeated fallback on failure
+  busy = true;
+  const button = $('modal').querySelector('[data-action="confirm-preset-workaround"]');
+  if (button) { button.disabled = true; button.textContent = 'Checking live presets…'; }
+  $('modal').dataset.locked = 'true';
+  let posting = false;
+  try {
+    const changed = await refreshPresets();
+    if (changed || result?.status !== 'solved') throw new Error('Official presets changed. Run the local check again.');
+    const original = toPayload(draft, catalog, result.minimum);
+    const alternative = remapUploadPayload(original, plan, catalog);
+    if (button) button.textContent = 'Uploading alternative…';
+    posting = true;
+    uncertainPublish = true;
+    persist();
+    const saved = await api.create(alternative);
+    // The local draft must match the preset ID actually recorded by the API.
+    draft.ships.forEach(ship => { if (ship.presetId === plan.fromId) ship.presetId = plan.toId; });
+    draft.saved = { ...saved, workaround: { fromId: plan.fromId, toId: plan.toId } };
+    result = null;
+    uncertainPublish = false;
+    persist(); busy = false; render(); showCode();
+  } catch (error) {
+    uncertainPublish = posting && (!error.status || error.status >= 500 || error.message.includes('accepted'));
+    persist(); busy = false; $('modal').dataset.locked = 'false'; render();
+    if (result?.status === 'solved') {
+      showReady();
+      $('publish-error').textContent = 'Alternative upload failed: ' + error.message +
+        (uncertainPublish ? ' The request may have been saved; check saved levels first.' : ' The original draft was not remapped.');
+    } else showError('Check required', error.message);
+  } finally { busy = false; }
+}
 function showCode() {
   const saved = draft.saved;
+  const workaroundNotice = saved?.workaround
+    ? `<div class="tip-box" style="margin:12px 0;text-align:left">Temporary workaround applied: preset ${saved.workaround.fromId} → ${saved.workaround.toId}. Reopen the saved level and verify it in the game. This does not fix the server validator.</div>`
+    : '';
   if (!saved) { toast('A level code is assigned after a successful upload.'); return; }
-  modal(`<div class="modal-body center"><div class="result-icon">${saved.published ? '↗' : '✓'}</div><span class="tag ${saved.published ? '' : 'warning'}">${saved.published ? 'PUBLISHED' : 'SAVED · AWAITING API APPROVAL'}</span><h2 id="modal-title" style="margin-top:13px">${saved.published ? 'A new challenge is ready.' : 'Your level has a code.'}</h2><p>${saved.published ? 'Share this code with another captain.' : 'Your level is saved. The API has not confirmed public availability yet. Keep the code; other players may not be able to open it until approval.'}</p><div class="large-code">${esc(saved.code)}</div><div class="modal-buttons stack"><button class="button primary full" data-action="copy-code">Copy to clipboard</button><button class="button outline full" data-action="reset">New level</button></div><button class="button ghost" data-action="close" style="margin-top:12px">Back to workshop</button></div>`);
+  modal(`<div class="modal-body center"><div class="result-icon">${saved.published ? '↗' : '✓'}</div><span class="tag ${saved.published ? '' : 'warning'}">${saved.published ? 'PUBLISHED' : 'SAVED · AWAITING API APPROVAL'}</span><h2 id="modal-title" style="margin-top:13px">${saved.published ? 'A new challenge is ready.' : 'Your level has a code.'}</h2><p>${saved.published ? 'Share this code with another captain.' : 'Your level is saved. The API has not confirmed public availability yet. Keep the code; other players may not be able to open it until approval.'}</p><div class="large-code">${esc(saved.code)}</div>${workaroundNotice}<div class="modal-buttons stack"><button class="button primary full" data-action="copy-code">Copy to clipboard</button><button class="button outline full" data-action="reset">New level</button></div><button class="button ghost" data-action="close" style="margin-top:12px">Back to workshop</button></div>`);
 }
 async function copyCode() { try { await navigator.clipboard.writeText(draft.saved.code); $('modal').querySelector('[data-action="copy-code"]').textContent = 'Copied ✓'; } catch { const range = document.createRange(); range.selectNodeContents($('modal').querySelector('.large-code')); getSelection().removeAllRanges(); getSelection().addRange(range); toast('Select the code and press Ctrl+C (or hold to copy).'); } }
 async function recover() {
@@ -282,6 +348,8 @@ document.addEventListener('click', async event => {
   if (a === 'check') checkLevel();
   if (a === 'cancel-check') { worker?.terminate(); worker = null; result = null; $('modal').close(); toast('Check cancelled. Your draft is safe.'); }
   if (a === 'publish') await publish();
+  if (a === 'preview-preset-workaround') previewPresetWorkaround();
+  if (a === 'confirm-preset-workaround') await publishWithPresetWorkaround();
   if (a === 'copy-code') await copyCode();
   if (a === 'recover') await recover();
   if (a === 'reconnect') { b.disabled = true; b.textContent = 'Connecting…'; try { await refreshPresets(); } catch (error) { live = false; connectionError = error.message; } render(); connection(); }
