@@ -8,7 +8,7 @@ class Heap {
   static less(a, b) {
     // Prefer deeper paths at the same A* lower bound: reach a complete
     // solution quickly without compromising optimality.
-    return a.f < b.f || (a.f === b.f && (a.g > b.g || (a.g === b.g && a.order < b.order)));
+    return a.f < b.f || (a.f === b.f && (a.g > b.g || (a.g === b.g && (a.rank < b.rank || (a.rank === b.rank && a.order < b.order)))));
   }
   peek() { return this.data[0]; }
   push(node) {
@@ -64,6 +64,19 @@ function* routes(node, moves = []) {
 
 // Prefer direct loading where optimal routes have the same move count.
 // This is a secondary preference, not an extra turn cost for A*.
+function movePriority(move) {
+  // Only breaks equal f/g ties; cannot change the optimal move count.
+  // Loading from depot/rail directly onto the ship is normally the most
+  // productive branch of this particular logistics puzzle.
+  if (move.to.kind === 'ship') {
+    if (move.from.kind === 'depot') return 0;
+    if (move.from.kind === 'train') return 1;
+    return 2;
+  }
+  if (move.to.kind === 'depot') return 3;
+  return 4;
+}
+
 function handlingCost(moves) {
   let score = 0;
   for (const move of moves) {
@@ -115,7 +128,7 @@ export function solve(draft, catalog, {
   let order = 0, explored = 0, optimal = null, found = 0, lastUpdate = 0;
   const rootState = initialState(model);
   const rootKey = stateKey(rootState);
-  const root = { key: rootKey, state: rootState, g: 0, f: heuristic(rootState, model), parents: [], order: order++ };
+  const root = { key: rootKey, state: rootState, g: 0, f: heuristic(rootState, model), parents: [], rank: 0, order: order++ };
   best.set(rootKey, root); queue.push(root);
   const immediate = directFinish(draft, catalog, model, rootState, limit, start);
   if (immediate) {
@@ -221,7 +234,7 @@ export function solve(draft, catalog, {
         }
         continue;
       }
-      const next = { key, state: child.state, g, f, parents: [parentEdge], order: order++ };
+      const next = { key, state: child.state, g, f, parents: [parentEdge], rank: movePriority(child.move), order: order++ };
       best.set(key, next);
       queue.push(next);
     }
