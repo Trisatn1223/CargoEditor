@@ -48,6 +48,20 @@ optional comparison of equally short alternatives. Static contradictions
 return a specific reason rather than exhausting hundreds of thousands of
 search states.
 
+## Temporary ship-7 publication workaround
+
+The API sometimes rejects ship preset 7 with HTTP 422 even when
+`max_x_variance: 3` is correctly sent. The public editor offers a **manual,
+confirm-before-upload** substitution to approved preset 8 **only** if the live
+catalog shows the same ship scene and physics. The original draft is preserved
+on cancellation or API rejection; the replacement is recorded only after a
+successful upload. This workaround is experimental and cannot repair the API.
+
+See [temporary ship-7 workaround and one-line rollback](docs/TEMP_PRESET_7_WORKAROUND.md).
+**Disable it without a branch:** change
+`ENABLE_PRESET_7_UPLOAD_WORKAROUND = false` in `public/config.js`,
+commit directly to `main`, and let the normal update timer deploy.
+
 ## Integration boundaries
 
 1. The production editor uses a same-origin API path (`/api/...`) routed through the existing Caddy reverse proxy. Update the existing Caddyfile as documented; the old API CORS failure is resolved by this route, without changing the API's CORS configuration.
