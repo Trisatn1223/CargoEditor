@@ -37,6 +37,17 @@ API: `https://cargo-api.dreamislandstudio.de`
 
 The supplied systemd timer checks `main` every 30 minutes, runs tests during the image build, probes the new image, and deploys it. Failed tests/builds do not replace the running site. A failed Compose deployment attempts to restore the previous image.
 
+## Solver design and research
+
+See [research, chosen algorithm and limits](docs/SOLVER_RESEARCH.md).
+The browser first checks whether any final cargo arrangement is geometrically
+and physically feasible, then proves direct one-move finishes (including
+depot -> ship) without exploring the search graph. If neither determines the
+answer, admissible A* searches for the shortest route, followed by a short
+optional comparison of equally short alternatives. Static contradictions
+return a specific reason rather than exhausting hundreds of thousands of
+search states.
+
 ## Integration boundaries
 
 1. The production editor uses a same-origin API path (`/api/...`) routed through the existing Caddy reverse proxy. Update the existing Caddyfile as documented; the old API CORS failure is resolved by this route, without changing the API's CORS configuration.
