@@ -207,6 +207,48 @@ Für sofort sichtbare Community-Level muss die API eine entsprechende Veröffent
 
 Ein Suchlimit bedeutet „nicht abschließend geprüft“, nicht „unlösbar“. Die Editor-Prüfung nutzt wie der übergebene Godot-Easy-Code die **Y-Achse** und den im Spiel verwendeten X-Varianz-Grenzwert. Andere dokumentierte Laufzeit-Unterschiede müssen vor einer Freigabe im Godot-Spiel abgeglichen werden. Siehe [GODOT_RULES.md](GODOT_RULES.md). Dort stehen auch konkrete Abweichungen/Bugs des hochgeladenen Godot-Codes, besonders bei Lebensmittel-Effekten und dem letzten Schiffswechsel.
 
+### HTTP 422: Schiff 7.max_x_variance wird abgelehnt
+
+Der Browser-Editor schickt ab Commit `c42f961e3cdd7919957d6f11173fafa5b2523416`
+den numerischen Wert `max_x_variance` zusammen mit `max_y_variance`,
+`center_offset` und `scene_path` aus dem zugelassenen Live-Preset.
+
+**Zuerst die ausgelieferte Version prüfen:**
+
+```bash
+curl -fsS https://cargo-editor.dreamislandstudio.de/version.json
+cat /var/lib/cargo-editor/current
+git -C /opt/cargo-editor rev-parse HEAD
+```
+
+Die drei Commits sollten gleich sein. Falls nicht, das Systemd-Updateprotokoll
+prüfen: `journalctl -u cargo-editor-update.service -n 100 --no-pager`.
+
+**Live-Preset der API sicher ausgeben (kein Passwort/Token erforderlich):**
+
+```bash
+curl -fsS https://cargo-editor.dreamislandstudio.de/api/editor/presets \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); print(*[{"id":s.get("id"),"scene_path":s.get("scene_path"),"max_x_variance":s.get("max_x_variance"),"variance_type":type(s.get("max_x_variance")).__name__} for s in d.get("ships",[]) if s.get("id")==7],sep="\\n")'
+```
+
+Nach dem Browser-Update hängt der Editor bei einer solchen 422-Meldung die
+**tatsächlich gesendeten** öffentlichen Preset-ID-/Varianzzahlen an. Wenn
+`preset 7: 3 (number)` gesendet wurde, aber die API weiterhin
+`Schiff 7.max_x_variance` ablehnt, liegt der Fehler vermutlich beim
+serverseitigen Preset-Lookup, Snapshot-Aufbau oder der Validator-Eingabe –
+nicht bei der lokalen A*-Suche. Dafür sind Backend-Code bzw. API-Logs nötig.
+Nicht durch das Setzen eines Dummy-Werts oder das Abschalten der
+API-Validierung umgehen. Keine Bearer-Tokens im Terminal oder Chat ausgeben.
+
+```bash
+cd /opt/container-game
+docker compose logs --since 15m --tail 200 api
+```
+
+Wenn die Live-Preset-Antwort `max_x_variance` nicht als endliche Zahl im
+Bereich 0..100000 enthält, zuerst die autoritative Preset-Datenbank bzw.
+die API-Serialisierung korrigieren und anschließend die Presets erneut laden.
+
 ## 7. Fehler und Rückkehr zur vorherigen Version
 
 | Beobachtung | Prüfung |
