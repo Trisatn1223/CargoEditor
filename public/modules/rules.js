@@ -49,6 +49,65 @@ export function matchesGoal(cells, ship) {
     return !allowed.length || allowed.some(s => s.position[0] === ship.slots[i].position[0] && s.position[1] === ship.slots[i].position[1]);
   });
 }
+/**
+ * Proves a terminal configuration impossible, before exploring any transfers.
+ * Check both allowed cargo slots and the final Godot Easy Y-balance. This
+ * deliberately does NOT approximate cooling effects or intermediate moves.
+ * Return null when possible OR when a bounded static check is inconclusive.
+ */
+export function impossibleGoalReason(model) {
+  for (let shipNumber = 0; shipNumber < model.ships.length; shipNumber++) {
+    const ship = model.ships[shipNumber], requirements = Object.entries(ship.targets)
+      .filter(([, count]) => count > 0).map(([id, count]) => ({
+        id: Number(id), count, weight: model.containers.get(Number(id)).weight,
+      }));
+    const slots = ship.slots, required = requirements.reduce((sum, t) => sum + t.count, 0);
+    if (required > slots.length) return `Ship ${shipNumber + 1}: target cargo exceeds capacity.`;
+    const accepted = requirements.map(t => {
+      const selected = slots.filter((slot, i) => ship.zones[i].includes(t.id));
+      return slots.map((slot, i) => !selected.length || selected.some(s =>
+        s.position[0] === slot.position[0] && s.position[1] === slot.position[1]));
+    });
+    for (let t = 0; t < requirements.length; t++) {
+      if (accepted[t].filter(Boolean).length < requirements[t].count) {
+        return `Ship ${shipNumber + 1}: allowed target positions cannot hold all required cargo type ${requirements[t].id} containers.`;
+      }
+    }
+    const light = Math.min(...requirements.map(t => t.weight));
+    const heavy = Math.max(...requirements.map(t => t.weight));
+    const normalizer = (light + heavy) / 2;
+    const counts = requirements.map(t => t.count);
+    let visited = 0;
+    const maxChecks = 250000;
+    const search = (i, remaining, moment) => {
+      if (++visited > maxChecks) return null; // inconclusive, never declare impossible
+      const placesLeft = slots.length - i;
+      if (placesLeft < remaining) return false;
+      if (i === slots.length) return remaining === 0 &&
+        Math.abs(moment / normalizer) <= ship.limit + 1e-9;
+      let unknown = false;
+      if (remaining < placesLeft) {
+        const empty = search(i + 1, remaining, moment);
+        if (empty === true) return true;
+        if (empty === null) unknown = true;
+      }
+      for (let j = 0; j < requirements.length; j++) {
+        if (!counts[j] || !accepted[j][i]) continue;
+        counts[j]--;
+        const next = search(i + 1, remaining - 1,
+          moment + requirements[j].weight * (slots[i].lever[1] + ship.offset[1]));
+        counts[j]++;
+        if (next === true) return true;
+        if (next === null) unknown = true;
+      }
+      return unknown ? null : false;
+    };
+    const feasible = search(0, required, 0);
+    if (feasible === false) return `Ship ${shipNumber + 1}: no final loading arrangement satisfies both the target positions and the Y balance limit.`;
+  }
+  return null;
+}
+
 export function initialState(model) {
   return { ship: 0, cells: [...model.ships[0].initial], depot: [...model.depot], train: 0 };
 }
