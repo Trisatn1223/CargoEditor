@@ -18,7 +18,9 @@ await context.route('https://cargo-api.dreamislandstudio.de/**', async route => 
   if (req.method() === 'OPTIONS') body = {};
   else if (url.pathname === '/editor/presets') body = presets;
   else if (url.pathname === '/auth/anonymous') { body = { token: 'browser-test-player' }; status = 201; }
-  else if (url.pathname === '/levels' && req.method() === 'POST') { posts.push(req.postDataJSON()); savedPayload = posts.at(-1).payload; if (responseMode === 'reject') { status = 422; body = { detail: [{ loc: ['body', 'payload', 'ships', 0, 'target_zones'], msg: 'Unknown position', type: 'value_error', input: 'do-not-echo' }] }; } else { body = { code: 'ABCDE', version: 1, published }; status = 201; } }
+  else if (url.pathname === '/levels' && req.method() === 'POST') { posts.push(req.postDataJSON()); savedPayload = posts.at(-1).payload; if (responseMode === 'reject') { status = 422; body = { detail: [{ loc: ['body', 'payload', 'ships', 0, 'target_zones'], msg: 'Unknown position', type: 'value_error', input: 'do-not-echo' }] }; }
+  else if (responseMode === 'variance' && savedPayload.ships.some(s => s.preset_id === 7)) { status = 422; body = { detail: 'Schiff 7.max_x_variance: Zahl zwischen 0 und 100000 erforderlich.' }; }
+  else { body = { code: 'ABCDE', version: 1, published }; status = 201; } }
   else if (url.pathname === '/levels/ABCDE') body = { code: 'ABCDE', published: true, payload: savedPayload };
   else { status = 404; body = { detail: 'Not found' }; }
   await route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': 'http://127.0.0.1:8080', 'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-allow-headers': 'authorization,content-type' }, body: JSON.stringify(body) });
@@ -85,6 +87,33 @@ responseMode = 'reject'; await page.locator('dialog [data-action="publish"]').cl
 assert(!(await page.locator('#publish-error').innerText()).includes('do-not-echo'));
 assert.equal(await page.locator('#level-code').innerText(), 'Not published');
 await page.locator('dialog [data-action="close"]').click();
+// Temporary fallback is offered ONLY when a server 422 names ship 7.
+// The old draft stays on preset 7 until explicit user approval and API success.
+responseMode = 'variance';
+await page.locator('#check-button').click();
+await page.locator('dialog [data-action="publish"]').click();
+await page.locator('#publish-error').filter({ hasText: 'Schiff 7.max_x_variance' }).waitFor();
+await page.locator('[data-action="preview-preset-workaround"]').click();
+await page.getByRole('heading', { name: 'Try a temporary ship-preset workaround?' }).waitFor();
+let current = await page.evaluate(() => JSON.parse(localStorage.getItem('cargo-workshop-draft-v1')).draft);
+assert.equal(current.ships[0].presetId, 7, 'Reviewing fallback must not alter the original draft');
+// Cancel never posts a fallback upload.
+const beforeFallback = posts.length;
+await page.locator('dialog [data-action="close"]').click();
+assert.equal(posts.length, beforeFallback);
+await page.locator('#check-button').click();
+await page.locator('dialog [data-action="preview-preset-workaround"]').click();
+await page.locator('[data-action="confirm-preset-workaround"]').click();
+await page.getByRole('heading', { name: 'A new challenge is ready.' }).waitFor();
+assert.equal(posts.at(-1).payload.ships[0].preset_id, 8);
+assert.equal(posts.at(-1).payload.ships[0].max_x_variance, 3);
+current = await page.evaluate(() => JSON.parse(localStorage.getItem('cargo-workshop-draft-v1')).draft);
+assert.equal(current.ships[0].presetId, 8);
+assert.equal(current.saved.workaround.fromId, 7);
+assert.equal(current.saved.workaround.toId, 8);
+assert((await page.locator('dialog').innerText()).includes('Temporary workaround applied'));
+await page.locator('dialog [data-action="close"]').click();
+responseMode = 'success';
 // Pointer drag from library to ship, then slot-to-slot, without duplication.
 const source = page.locator('[data-drag="palette"][data-id="1"]'); const destination = page.locator('[data-drop="ship"][data-index="3"]');
 const a = await source.boundingBox(), b = await destination.boundingBox();
