@@ -99,7 +99,7 @@ let current = await page.evaluate(() => JSON.parse(localStorage.getItem('cargo-w
 assert.equal(current.ships[0].presetId, 7, 'Reviewing fallback must not alter the original draft');
 // Cancel never posts a fallback upload.
 const beforeFallback = posts.length;
-await page.locator('dialog [data-action="close"]').click();
+await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 assert.equal(posts.length, beforeFallback);
 await page.locator('#check-button').click();
 await page.locator('dialog [data-action="preview-preset-workaround"]').click();
