@@ -79,7 +79,26 @@ export class CargoAPI {
   }
   async create(payload) {
     const token = await this.identity();
-    const result = await this.request('/levels', { method: 'POST', body: { user_difficulty: 'easy', payload }, token });
+    let result;
+    try {
+      result = await this.request('/levels', { method: 'POST', body: { user_difficulty: 'easy', payload }, token });
+    } catch (error) {
+      // The game API sometimes rejects a ship's variance from its own
+      // authoritative preset table, even when the caller includes it. Expose
+      // only public ship metadata to distinguish stale frontend code from
+      // broken server-side snapshot/preset validation. Never expose tokens,
+      // container arrangements or private level data.
+      if (error.status === 422 && /max_x_variance/i.test(error.message)) {
+        const summary = Array.isArray(payload?.ships)
+          ? payload.ships.map(ship => {
+            const v = ship?.max_x_variance;
+            return `preset ${Number.isInteger(ship?.preset_id) ? ship.preset_id : '?'}: ${Number.isFinite(v) ? v : 'missing/invalid'} (${typeof v})`;
+          }).slice(0, 8).join('; ')
+          : 'no ship payload';
+        throw new ApiError(`${error.message} Sent max_x_variance values: ${summary}. If these numbers are valid, check the backend ship-preset database and its snapshot validator, not the browser solver.`, 422);
+      }
+      throw error;
+    }
     if (typeof result.code !== 'string' || !/^[A-Z0-9]{5,12}$/i.test(result.code)) throw new ApiError('The API accepted the request but returned no valid code. Do not publish again; check your saved levels first.');
     return { code: normalizeCode(result.code), version: result.version ?? null, published: result.published === true };
   }
