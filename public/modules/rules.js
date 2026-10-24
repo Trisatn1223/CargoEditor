@@ -8,7 +8,12 @@ export function compile(draft, catalog) {
     const p = catalog.ships.find(p => p.id === s.presetId);
     return { ...s, slots: p.layout.slots, offset: p.center_offset, limit: p.max_x_variance };
   });
-  return { ships, containers, train: draft.train, depot: draft.depot, hasEffects: [...draft.train, ...draft.depot, ...draft.ships.flatMap(s => [...s.initial, ...Object.keys(s.targets).map(Number)])].some(id => id !== null && containers.get(id).function_id !== 0) };
+  const used = [...draft.train, ...draft.depot, ...draft.ships.flatMap(s => [...s.initial, ...Object.keys(s.targets).map(Number)])].filter(id => id !== null);
+  return {
+    ships, containers, train: draft.train, depot: draft.depot,
+    hasEffects: used.some(id => containers.get(id).function_id !== 0),
+    canTransform: used.some(id => containers.get(id).function_id === 4),
+  };
 }
 export function balance(cells, ship, containers) {
   let moment = 0, light = Infinity, heavy = 0;
@@ -48,9 +53,9 @@ export function initialState(model) {
   return { ship: 0, cells: [...model.ships[0].initial], depot: [...model.depot], train: 0 };
 }
 export function stateKey(state) {
-  // Depot positions have no special effects and are interchangeable. Keep the
-  // actual ordering on each node for a replayable witness; canonicalize keys only.
-  return `${state.ship}|${state.train}|${state.cells.map(v => v ?? '_').join(',')}|${[...state.depot].sort((a, b) => (a ?? -1) - (b ?? -1)).map(v => v ?? '_').join(',')}`;
+  // Depot positions are NOT interchangeable for solution replay: a witness
+  // references exact depot indices. Distinct arrangements must remain distinct.
+  return `${state.ship}|${state.train}|${state.cells.map(v => v ?? '_').join(',')}|${state.depot.map(v => v ?? '_').join(',')}`;
 }
 export function* successors(state, model) {
   const ship = model.ships[state.ship]; if (!ship) return;
@@ -83,13 +88,22 @@ export function* successors(state, model) {
   }
 }
 export function heuristic(state, model) {
-  // Food transformations can change several target counts in a single move.
-  // Dijkstra (h=0) keeps the result optimal for those levels.
-  if (model.hasEffects) return 0;
+  // Type-count mismatch is admissible for non-transforming cargo: a transfer
+  // changes the on-board count of at most one type by one. When food can turn
+  // into waste for free as a side effect, use a weaker but still admissible
+  // occupied-slot bound rather than falling back to Dijkstra everywhere.
   let lowerBound = 0;
   for (let i = state.ship; i < model.ships.length; i++) {
-    const ship = model.ships[i], counts = tally(i === state.ship ? state.cells : ship.initial);
-    for (const id of new Set([...Object.keys(counts), ...Object.keys(ship.targets)])) lowerBound += Math.abs((counts[id] || 0) - (ship.targets[id] || 0));
+    const ship = model.ships[i], cells = i === state.ship ? state.cells : ship.initial;
+    const targetSize = Object.values(ship.targets).reduce((sum, n) => sum + n, 0);
+    if (model.hasEffects && model.canTransform) {
+      lowerBound += Math.abs(cells.filter(id => id !== null).length - targetSize);
+      continue;
+    }
+    const counts = tally(cells);
+    for (const id of new Set([...Object.keys(counts), ...Object.keys(ship.targets)])) {
+      lowerBound += Math.abs((counts[id] || 0) - (ship.targets[id] || 0));
+    }
   }
   return lowerBound;
 }
