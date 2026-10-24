@@ -4,7 +4,7 @@ A responsive, English-language community editor for Cargo Chief. The production 
 
 - Build starting cargo, target quantities, allowed target positions, a 2 × 2 depot and a cyclic incoming train.
 - Easy mode only (`level_mode: 0`); this editor evaluates the Y balance component, matching the supplied Godot Easy-mode logic.
-- Run a cancellable local A*/Dijkstra search (up to 2,000,000 states or 180 seconds), compare up to 10 optimal goal paths, replay the best witness locally and derive star thresholds from its proven minimum **within the documented local rules**.
+- Run a cancellable local A* search (up to 2,000,000 states or 180 seconds), retain equal-cost predecessor paths and compare up to 10 distinct, shortest legal routes (favoring fewer handling moves on ties), replay the best witness locally and derive star thresholds from its proven minimum **within the documented local rules**.
 - Load an existing code as a new copy. The original level is never overwritten.
 - After checking, submit with an anonymous **player** token; display the actual API-assigned code, Copy to clipboard, and New level.
 - Distinguish a saved level from an API-confirmed published level. There are no fabricated share codes.
