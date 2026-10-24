@@ -273,6 +273,9 @@ test('opt-in preset 7 workaround uses only exact geometry and physics equivalenc
   copy.ships.find(s => s.id === 8).max_x_variance = 99;
   assert.equal(compatiblePresetPair(copy), null);
   copy.ships.find(s => s.id === 8).max_x_variance = 3;
+  // The catalog intentionally shares scene geometry objects. Detach one
+  // preset before testing a geometric mismatch in isolation.
+  copy.ships.find(s => s.id === 8).layout = structuredClone(copy.ships.find(s => s.id === 8).layout);
   copy.ships.find(s => s.id === 8).layout.slots[0].lever[1] = 99;
   assert.equal(compatiblePresetPair(copy), null);
 });
