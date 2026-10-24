@@ -88,19 +88,26 @@ export function* successors(state, model) {
   }
 }
 export function heuristic(state, model) {
-  // Type-count mismatch is admissible for non-transforming cargo: a transfer
-  // changes the on-board count of at most one type by one. When food can turn
-  // into waste for free as a side effect, use a weaker but still admissible
-  // occupied-slot bound rather than falling back to Dijkstra everywhere.
+  // Non-transforming cargo needs one move per excess/missing type. Food may
+  // spoil into waste for free when another move happens, so exclude these
+  // free conversions but keep the other type deficits/surpluses as an
+  // admissible lower bound. This is much stronger than uniform-cost search.
   let lowerBound = 0;
   for (let i = state.ship; i < model.ships.length; i++) {
     const ship = model.ships[i], cells = i === state.ship ? state.cells : ship.initial;
-    const targetSize = Object.values(ship.targets).reduce((sum, n) => sum + n, 0);
-    if (model.hasEffects && model.canTransform) {
-      lowerBound += Math.abs(cells.filter(id => id !== null).length - targetSize);
+    const counts = tally(cells);
+    if (model.canTransform) {
+      // Food (ID 4) can spoil into waste (ID 5) during another transfer.
+      // Such a free conversion may eliminate food surplus or fill a waste
+      // deficit, so do not charge a move for either. All other count changes
+      // still require loading/unloading one container per move.
+      for (const id of new Set([...Object.keys(counts), ...Object.keys(ship.targets)])) {
+        const current = counts[id] || 0, required = ship.targets[id] || 0;
+        if (Number(id) !== 5) lowerBound += Math.max(0, required - current);
+        if (Number(id) !== 4) lowerBound += Math.max(0, current - required);
+      }
       continue;
     }
-    const counts = tally(cells);
     for (const id of new Set([...Object.keys(counts), ...Object.keys(ship.targets)])) {
       lowerBound += Math.abs((counts[id] || 0) - (ship.targets[id] || 0));
     }
