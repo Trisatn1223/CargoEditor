@@ -5,6 +5,7 @@ import { emptyDraft, newShip, catalogFrom, toPayload, fromPayload, stars, valida
 import { compile, initialState, stateKey, successors, balance, effects, matchesGoal, heuristic, replay, impossibleGoalReason } from '../public/modules/rules.js';
 import { solve } from '../public/modules/solver.js';
 import { CargoAPI, normalizeCode } from '../public/modules/api.js';
+import { compatiblePresetPair, offeredPresetWorkaround, remapUploadPayload } from '../public/modules/preset-workaround.js';
 const catalog = catalogFrom(JSON.parse(readFileSync(new URL('../public/presets.json', import.meta.url))), JSON.parse(readFileSync(new URL('../public/layouts.json', import.meta.url))));
 function draftWith(targets = { 0: 1 }, train = [0]) { const d = emptyDraft(); d.ships = [newShip(catalog.ships.find(p => p.id === 7))]; d.ships[0].targets = targets; d.train = train; return d; }
 const quick = { maxMs: 5000, maxStates: 50000 };
@@ -258,4 +259,37 @@ test('422 ship variance diagnostic exposes the actual sent number but no credent
     error.message.includes('preset 7: 3 (number)') &&
     !error.message.includes('secret-identity') &&
     error.message.includes('backend ship-preset'));
+});
+
+test('opt-in preset 7 workaround uses only exact geometry and physics equivalence', () => {
+  assert.deepEqual(compatiblePresetPair(catalog), { fromId: 7, toId: 8 });
+  const error = { status: 422, message: 'The API rejected this level: Schiff 7.max_x_variance: Zahl zwischen 0 und 100000 erforderlich.' };
+  const d = draftWith({ 0: 1 }, [0]);
+  d.depot[0] = 0;
+  assert.deepEqual(offeredPresetWorkaround(error, d, catalog), { fromId: 7, toId: 8, count: 1 });
+  assert.equal(offeredPresetWorkaround({ ...error, status: 400 }, d, catalog), null);
+  assert.equal(offeredPresetWorkaround({ ...error, message: 'Schiff 8.max_x_variance: invalid' }, d, catalog), null);
+  const copy = structuredClone(catalog);
+  copy.ships.find(s => s.id === 8).max_x_variance = 99;
+  assert.equal(compatiblePresetPair(copy), null);
+  copy.ships.find(s => s.id === 8).max_x_variance = 3;
+  copy.ships.find(s => s.id === 8).layout.slots[0].lever[1] = 99;
+  assert.equal(compatiblePresetPair(copy), null);
+});
+test('opt-in preset 7 workaround remaps only ship ID and preserves every game setting', () => {
+  const d = draftWith({ 0: 1 }, [0, 1, 0]);
+  d.depot[3] = 0;
+  d.ships[0].initial[1] = 1;
+  d.ships[0].zones[4] = [0];
+  const normal = toPayload(d, catalog, 2);
+  const remapped = remapUploadPayload(normal, { fromId: 7, toId: 8 }, catalog);
+  assert.deepEqual(normal.ships[0].preset_id, 7);
+  assert.deepEqual(d.ships[0].presetId, 7);
+  assert.deepEqual(remapped.ships[0], { ...normal.ships[0], preset_id: 8 });
+  assert.deepEqual(remapped.train_container_types, normal.train_container_types);
+  assert.deepEqual(remapped.depot, normal.depot);
+  assert.deepEqual(remapped.star_thresholds, normal.star_thresholds);
+  const tampered = structuredClone(normal);
+  tampered.ships[0].max_x_variance = 0;
+  assert.throws(() => remapUploadPayload(tampered, { fromId: 7, toId: 8 }, catalog), /snapshot changed/);
 });
