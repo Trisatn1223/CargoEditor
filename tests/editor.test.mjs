@@ -240,3 +240,22 @@ test('422 details reveal a field path but never echo rejected input', async () =
   await assert.rejects(() => api.create({}), error => error.status === 422 &&
     /body.payload.ships.0.preset_id.*Unknown preset/.test(error.message) && !error.message.includes('SECRET-INPUT'));
 });
+
+test('422 ship variance diagnostic exposes the actual sent number but no credentials', async () => {
+  const storage = memoryStorage();
+  const api = new CargoAPI({ base: '/api', storage, fetcher: async (url, options) => {
+    if (url.endsWith('/auth/anonymous')) return new Response(JSON.stringify({ token: 'secret-identity' }), { status: 201 });
+    assert.equal(options.headers.Authorization, 'Bearer secret-identity');
+    const sent = JSON.parse(options.body);
+    assert.equal(sent.payload.ships[0].max_x_variance, 3);
+    return new Response(JSON.stringify({
+      detail: 'Schiff 7.max_x_variance: Zahl zwischen 0 und 100000 erforderlich.'
+    }), { status: 422 });
+  }});
+  await assert.rejects(() => api.create({
+    ships: [{ preset_id: 7, max_x_variance: 3, max_y_variance: 3, center_offset: [0, 0] }]
+  }), error => error.status === 422 &&
+    error.message.includes('preset 7: 3 (number)') &&
+    !error.message.includes('secret-identity') &&
+    error.message.includes('backend ship-preset'));
+});
