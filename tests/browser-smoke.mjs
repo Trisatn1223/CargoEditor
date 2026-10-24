@@ -18,7 +18,7 @@ await context.route('https://cargo-api.dreamislandstudio.de/**', async route => 
   if (req.method() === 'OPTIONS') body = {};
   else if (url.pathname === '/editor/presets') body = presets;
   else if (url.pathname === '/auth/anonymous') { body = { token: 'browser-test-player' }; status = 201; }
-  else if (url.pathname === '/levels' && req.method() === 'POST') { posts.push(req.postDataJSON()); savedPayload = posts.at(-1).payload; if (responseMode === 'reject') { status = 422; body = { detail: 'Rejected' }; } else { body = { code: 'ABCDE', version: 1, published }; status = 201; } }
+  else if (url.pathname === '/levels' && req.method() === 'POST') { posts.push(req.postDataJSON()); savedPayload = posts.at(-1).payload; if (responseMode === 'reject') { status = 422; body = { detail: [{ loc: ['body', 'payload', 'ships', 0, 'target_zones'], msg: 'Unknown position', type: 'value_error', input: 'do-not-echo' }] }; } else { body = { code: 'ABCDE', version: 1, published }; status = 201; } }
   else if (url.pathname === '/levels/ABCDE') body = { code: 'ABCDE', published: true, payload: savedPayload };
   else { status = 404; body = { detail: 'Not found' }; }
   await route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': 'http://127.0.0.1:8080', 'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-allow-headers': 'authorization,content-type' }, body: JSON.stringify(body) });
@@ -75,7 +75,8 @@ await page.locator('dialog [data-action="close"]').click();
 await page.getByRole('button', { name: 'Remove one Standard 1 from target', exact: true }).click();
 assert.equal(await page.locator('#level-code').innerText(), 'Not published'); assert((await page.locator('#check-button').innerText()).includes('Check level'));
 await page.locator('#check-button').click(); await page.getByRole('heading', { name: 'Your level has a solution.' }).waitFor();
-responseMode = 'reject'; await page.locator('dialog [data-action="publish"]').click(); await page.locator('#publish-error').filter({ hasText: 'rejected' }).waitFor();
+responseMode = 'reject'; await page.locator('dialog [data-action="publish"]').click(); await page.locator('#publish-error').filter({ hasText: 'body.payload.ships.0.target_zones: Unknown position' }).waitFor();
+assert(!(await page.locator('#publish-error').innerText()).includes('do-not-echo'));
 assert.equal(await page.locator('#level-code').innerText(), 'Not published');
 await page.locator('dialog [data-action="close"]').click();
 // Pointer drag from library to ship, then slot-to-slot, without duplication.
