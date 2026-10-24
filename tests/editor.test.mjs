@@ -117,8 +117,38 @@ test('replay rejects fabricated moves', () => { assert.throws(() => replay(draft
 test('payload uses easy mode, official IDs, count fields and no private values', () => {
   const d = draftWith({ 0: 2 }); d.ships[0].zones[0] = [0]; d.depot[2] = 1;
   const p = toPayload(d, catalog, 3); assert.equal(p.level_mode, 0); assert.equal(p.ships[0].target_load[0].count, 2);
-  assert(!('scene_path' in p.ships[0])); assert(!('max_y_variance' in p.ships[0])); assert.deepEqual(p.depot.initial_load[0].position, [0, 1]);
+  const official = catalog.ships.find(ship => ship.id === 7);
+  assert.equal(p.ships[0].preset_id, 7);
+  assert.equal(p.ships[0].scene_path, official.scene_path);
+  assert.equal(p.ships[0].max_x_variance, official.max_x_variance);
+  assert.equal(p.ships[0].max_y_variance, official.max_y_variance);
+  assert.deepEqual(p.ships[0].center_offset, official.center_offset);
+  assert.deepEqual(p.depot.initial_load[0].position, [0, 1]);
   const imported = fromPayload(p, catalog, 'ABCDE'); assert.equal(imported.sourceCode, 'ABCDE'); assert.equal(imported.saved, null); assert.deepEqual(toPayload(imported, catalog, 3), p);
+});
+test('published ship physics can only come from authoritative preset catalog', () => {
+  const d = draftWith();
+  // A draft may contain arbitrary extra keys from old browser storage.
+  // The payload must never trust these edits for the game physics.
+  d.ships[0].max_x_variance = -500;
+  d.ships[0].max_y_variance = 99999999;
+  d.ships[0].center_offset = [999, 999];
+  d.ships[0].scene_path = 'res://Unsafe.tscn';
+  const payload = toPayload(d, catalog, 1);
+  const ship = payload.ships[0], preset = catalog.ships.find(p => p.id === 7);
+  assert.equal(ship.max_x_variance, preset.max_x_variance);
+  assert.equal(ship.max_y_variance, preset.max_y_variance);
+  assert.equal(ship.scene_path, preset.scene_path);
+  assert.deepEqual(ship.center_offset, preset.center_offset);
+  ship.center_offset[0] = 999; // not a mutable alias of the catalog
+  assert.notEqual(catalog.ships.find(p => p.id === 7).center_offset[0], 999);
+});
+test('unsupported variance values are excluded from official ship presets', () => {
+  const p = JSON.parse(readFileSync(new URL('../public/presets.json', import.meta.url)));
+  const shapes = JSON.parse(readFileSync(new URL('../public/layouts.json', import.meta.url)));
+  p.ships = [ { ...p.ships.find(p => p.id === 7), max_x_variance: -1 }, p.ships.find(p => p.id === 7) ];
+  p.ships[1] = { ...p.ships[1], max_x_variance: 100001, id: 999 };
+  assert.throws(() => catalogFrom(p, shapes), /No supported ship layouts/);
 });
 test('copy preserves multi-type target restrictions and rejects unknown positions', () => {
   const d = draftWith({ 0: 1, 1: 1 }); d.ships[0].zones[0] = [0, 1];
