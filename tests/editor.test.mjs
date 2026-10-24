@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { emptyDraft, newShip, catalogFrom, toPayload, fromPayload, stars, validate } from '../public/modules/model.js';
-import { compile, initialState, successors, balance, effects, matchesGoal, replay } from '../public/modules/rules.js';
+import { compile, initialState, stateKey, successors, balance, effects, matchesGoal, heuristic, replay } from '../public/modules/rules.js';
 import { solve } from '../public/modules/solver.js';
 import { CargoAPI, normalizeCode } from '../public/modules/api.js';
 const catalog = catalogFrom(JSON.parse(readFileSync(new URL('../public/presets.json', import.meta.url))), JSON.parse(readFileSync(new URL('../public/layouts.json', import.meta.url))));
@@ -35,7 +35,7 @@ test('solver compares up to ten completed solution paths', () => {
   const r = solve(draftWith({ 0: 3 }), catalog, { ...quick, maxSolutions: 10 });
   assert.equal(r.status, 'solved');
   assert.equal(r.minimum, 3);
-  assert(r.solutionsFound >= 1 && r.solutionsFound <= 10);
+  assert.equal(r.solutionsFound, 10, 'Three ordinary deliveries have many equal-length position permutations');
   assert(replay(draftWith({ 0: 3 }), catalog, r.moves));
 });
 test('single delivery and already-on-board cargo produce actual minimums', () => {
@@ -152,4 +152,27 @@ test('imported level inherits preset cargo only when ship fields were omitted', 
   const explicitEmpty = fromPayload(payload, catalog, 'IWNMTC');
   assert.equal(explicitEmpty.ships[0].initial.every(id => id === null), true);
   assert.deepEqual(explicitEmpty.ships[0].targets, { 0: 1 });
+});
+
+test('depot state keys preserve the physical slot indices used by replay', () => {
+  const s = initialState(compile(draftWith(), catalog));
+  const t = structuredClone(s);
+  s.depot = [0, 1, null, null];
+  t.depot = [1, 0, null, null];
+  assert.notEqual(stateKey(s), stateKey(t));
+});
+test('heuristic for food is admissible but charges unavoidable ordinary cargo transfers', () => {
+  const d = draftWith({ 0: 2, 5: 1 }, [4, 0]);
+  const m = compile(d, catalog), root = initialState(m);
+  assert.equal(m.canTransform, true);
+  assert.equal(heuristic(root, m), 2);
+  const r = solve(d, catalog, { ...quick, maxSolutions: 10 });
+  if (r.status === 'solved') assert(heuristic(root, m) <= r.minimum);
+});
+test('422 details reveal a field path but never echo rejected input', async () => {
+  const details = { detail: [{ loc: ['body', 'payload', 'ships', 0, 'preset_id'], msg: 'Unknown preset', type: 'value_error', input: 'SECRET-INPUT' }] };
+  const api = new CargoAPI({ base: '/api', storage: memoryStorage(), fetcher: async url =>
+    new Response(JSON.stringify(url.endsWith('/anonymous') ? { token: 'test' } : details), { status: url.endsWith('/anonymous') ? 201 : 422 }) });
+  await assert.rejects(() => api.create({}), error => error.status === 422 &&
+    /body.payload.ships.0.preset_id.*Unknown preset/.test(error.message) && !error.message.includes('SECRET-INPUT'));
 });
