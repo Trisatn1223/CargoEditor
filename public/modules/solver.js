@@ -74,6 +74,30 @@ function handlingCost(moves) {
   return score;
 }
 
+/**
+ * Fast one-move proof. A cargo level cannot finish without a transfer, so a
+ * legal goal reached after one action is optimal. The same official successor
+ * rules and witness replay are used as in the full solver.
+ */
+function directFinish(draft, catalog, model, rootState, limit, startedAt) {
+  const candidates = [], unique = new Set();
+  for (const child of successors(rootState, model)) {
+    if (child.state.ship !== model.ships.length) continue;
+    const moves = [child.move], key = JSON.stringify(moves);
+    if (unique.has(key)) continue;
+    unique.add(key);
+    if (!replay(draft, catalog, moves)) throw new Error('One-move goal failed replay.');
+    candidates.push({ moves, score: handlingCost(moves), key });
+    if (candidates.length >= limit) break;
+  }
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => a.score - b.score || a.key.localeCompare(b.key));
+  return { status: 'solved', minimum: 1, moves: candidates[0].moves,
+    solutionsFound: candidates.length, searchComplete: candidates.length < limit,
+    optimalProven: true, strategy: 'direct-goal', explored: 1, states: 1,
+    elapsed: performance.now() - startedAt };
+}
+
 export function solve(draft, catalog, {
   maxStates = 2000000, maxMs = 180000, maxSolutions = 10, onProgress = () => {},
 } = {}) {
@@ -85,6 +109,18 @@ export function solve(draft, catalog, {
   const rootKey = stateKey(rootState);
   const root = { key: rootKey, state: rootState, g: 0, f: heuristic(rootState, model), parents: [], order: order++ };
   best.set(rootKey, root); queue.push(root);
+  const immediate = directFinish(draft, catalog, model, rootState, limit, start);
+  if (immediate) {
+    onProgress({ explored: 1, states: 1, queued: 0, elapsed: immediate.elapsed,
+      found: immediate.solutionsFound, bestMoves: 1, maxSolutions: limit, maxStates,
+      phase: 'complete', directChecked: true });
+    return immediate;
+  }
+  const directChecked = true;
+  // Only the secondary enumeration of equally short routes is time-boxed.
+  // This prevents a proven minimum being held hostage by variants.
+  const alternativesMs = 4000, alternativesStates = 20000;
+  let foundAt = 0, exploredAtFirstGoal = 0;
 
   const countGoalPaths = () => {
     const cache = new Map();
@@ -98,6 +134,7 @@ export function solve(draft, catalog, {
   const emit = elapsed => onProgress({
     explored, states: best.size, queued: queue.data.length, elapsed,
     found, maxSolutions: limit, maxStates, bestMoves: optimal,
+    phase: optimal === null ? 'search' : 'alternatives', directChecked,
   });
   const finish = (limited = false) => {
     const elapsed = performance.now() - start;
@@ -125,8 +162,8 @@ export function solve(draft, catalog, {
     found = candidates.length;
     emit(elapsed);
     return { status: 'solved', minimum: optimal, moves: candidates[0].moves,
-      solutionsFound: found, searchComplete: !limited,
-      explored, states: best.size, elapsed };
+      solutionsFound: found, searchComplete: !limited, optimalProven: true,
+      strategy: 'astar', explored, states: best.size, elapsed };
   };
 
   let limited = false;
@@ -135,11 +172,21 @@ export function solve(draft, catalog, {
     if (elapsed > maxMs || best.size > maxStates || queue.data.length > maxStates) {
       limited = true; break;
     }
-    if (optimal !== null && queue.peek().f > optimal) break;
+    if (optimal !== null) {
+      if (queue.peek().f > optimal) break;
+      if (elapsed - foundAt > alternativesMs || explored - exploredAtFirstGoal > alternativesStates) {
+        limited = true; break;
+      }
+    }
     const node = queue.pop();
     if (best.get(node.key) !== node) continue; // stale, improved path
     if (node.state.ship === model.ships.length) {
-      if (optimal === null) optimal = node.g;
+      if (optimal === null) {
+        optimal = node.g; foundAt = performance.now() - start;
+        exploredAtFirstGoal = explored;
+        found = 1;
+        emit(foundAt); // a mathematically proven minimum is available
+      }
       if (node.g === optimal && !goalNodes.includes(node)) goalNodes.push(node);
       found = countGoalPaths();
       if (found >= limit) break;
