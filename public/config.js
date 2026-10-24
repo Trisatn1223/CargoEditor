@@ -5,8 +5,3 @@ export const API_BASE = globalThis.location?.hostname === 'cargo-editor.dreamisl
   ? '/api' : 'https://cargo-api.dreamislandstudio.de';
 export const RULES_VERSION = 'editor-2026-10-23-easy-y-v3';
 export const SEARCH_LIMITS = { maxStates: 2000000, maxMs: 180000, maxSolutions: 10 };
-
-// TEMPORARY: remove this workaround after fixing the server-side validation
-// for ship preset 7. Set to false to disable immediately without a new branch.
-// See docs/TEMP_PRESET_7_WORKAROUND.md for the rollback.
-export const ENABLE_PRESET_7_UPLOAD_WORKAROUND = true;
