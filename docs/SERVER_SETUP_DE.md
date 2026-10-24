@@ -195,7 +195,7 @@ Der Updater ist absichtlich als fest installierte Datei außerhalb des Git-Repos
 ## 6. Levelcodes und Veröffentlichung
 
 1. Schiff, Startladung, Zielmengen, erlaubte Positionen, Depot und Zugfolge bearbeiten.
-2. **Check level**: Der große Dialog zeigt die lokale Suche. Der Balken zeigt den genutzten Suchbudget-Anteil (bis zu 2.000.000 Zustände), **nicht** den tatsächlichen Lösungsfortschritt. Die Suche betrachtet bis zu zehn optimale Lösungswege. Abbruch ist möglich.
+2. **Check level**: Der große Dialog zeigt die lokale Suche. Der Balken zeigt den genutzten Suchbudget-Anteil (bis zu 2.000.000 Zustände), **nicht** den tatsächlichen Lösungsfortschritt. Die Suche betrachtet bis zu zehn unterschiedliche optimale Lösungswege und bevorzugt unter gleich kurzen Routen weniger unnötige Umlagerungen. Bei HTTP 422 zeigt die Editor-Meldung den konkreten Validierungsfehler der API. Abbruch ist möglich.
 3. Nach Erfolg **Publish level** drücken.
 4. Die API liefert den Code. Er erscheint im Dialog und oben rechts.
 5. **Copy to clipboard** kopiert ihn. **New level** löscht den lokalen Entwurf vollständig.
@@ -205,7 +205,7 @@ Die Übergabe beschreibt eine noch fehlende serverseitige Replay-Freigabe. Diese
 
 Für sofort sichtbare Community-Level muss die API eine entsprechende Veröffentlichungsregel anbieten. Diese Änderung kann **nicht** allein im statischen Editor erfolgen. Der Backend-Quellcode wurde nicht mitgeliefert. Der Editor schickt keine geheimen Service-Anfragen und täuscht keine Freigabe vor.
 
-Ein Suchlimit bedeutet „nicht abschließend geprüft“, nicht „unlösbar“. Achtung: Die neue Editor-Prüfung nutzt auf ausdrücklichen Wunsch die **X-Achse**. Der bisher übergebene Godot-Code prüfte Easy auf Y. Die Spielregeln müssen abgeglichen werden, bevor veröffentlichte Level in der App als geprüft gelten. Siehe [GODOT_RULES.md](GODOT_RULES.md). Dort stehen auch konkrete Abweichungen/Bugs des hochgeladenen Godot-Codes, besonders bei Lebensmittel-Effekten und dem letzten Schiffswechsel.
+Ein Suchlimit bedeutet „nicht abschließend geprüft“, nicht „unlösbar“. Die Editor-Prüfung nutzt wie der übergebene Godot-Easy-Code die **Y-Achse** und den im Spiel verwendeten X-Varianz-Grenzwert. Andere dokumentierte Laufzeit-Unterschiede müssen vor einer Freigabe im Godot-Spiel abgeglichen werden. Siehe [GODOT_RULES.md](GODOT_RULES.md). Dort stehen auch konkrete Abweichungen/Bugs des hochgeladenen Godot-Codes, besonders bei Lebensmittel-Effekten und dem letzten Schiffswechsel.
 
 ## 7. Fehler und Rückkehr zur vorherigen Version
 
