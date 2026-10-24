@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { emptyDraft, newShip, catalogFrom, toPayload, fromPayload, stars, validate } from '../public/modules/model.js';
-import { compile, initialState, stateKey, successors, balance, effects, matchesGoal, heuristic, replay } from '../public/modules/rules.js';
+import { compile, initialState, stateKey, successors, balance, effects, matchesGoal, heuristic, replay, impossibleGoalReason } from '../public/modules/rules.js';
 import { solve } from '../public/modules/solver.js';
 import { CargoAPI, normalizeCode } from '../public/modules/api.js';
 const catalog = catalogFrom(JSON.parse(readFileSync(new URL('../public/presets.json', import.meta.url))), JSON.parse(readFileSync(new URL('../public/layouts.json', import.meta.url))));
@@ -30,6 +30,40 @@ test('Godot Easy compares the Y moment with max_x_variance (as implemented in ga
   assert(!next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 0)); // top row forbidden
   assert(next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 3)); // middle row allowed
   assert(next.some(x => x.move.to.kind === 'ship' && x.move.to.index === 5)); // X-coordinate irrelevant
+});
+test('one depot container to ship finishes in ONE move without a graph search', () => {
+  const d = draftWith({ 0: 1 }, [1, 0, 2]);
+  d.depot[2] = 0;
+  const updates = [];
+  const r = solve(d, catalog, { maxStates: 0, maxMs: 100, maxSolutions: 10,
+    onProgress: p => updates.push(p) });
+  assert.equal(r.status, 'solved');
+  assert.equal(r.minimum, 1);
+  assert.equal(r.strategy, 'direct-goal');
+  assert.equal(r.optimalProven, true);
+  assert.equal(r.explored, 1);
+  assert.equal(r.moves[0].from.kind, 'depot');
+  assert.equal(r.moves[0].to.kind, 'ship');
+  assert(replay(d, catalog, r.moves));
+  assert(updates.some(p => p.bestMoves === 1));
+});
+test('a one-step-looking level with forbidden Y balance is rejected immediately', () => {
+  const c = structuredClone(catalog), preset = c.ships.find(s => s.id === 7);
+  preset.max_x_variance = 0;
+  const d = draftWith({ 0: 1 });
+  d.depot[0] = 0;
+  d.ships[0].zones[1] = [0]; // only top-centre slot, Y lever -1
+  const model = compile(d, c);
+  assert.match(impossibleGoalReason(model), /Y balance limit/);
+  const r = solve(d, c, { maxStates: 250000, maxMs: 5000 });
+  assert.equal(r.status, 'impossible');
+  assert.equal(r.explored, 0);
+  assert.match(r.reason, /Y balance/);
+});
+test('final positions without enough allowed space are reported as a deadlock', () => {
+  const d = draftWith({ 0: 2 });
+  d.ships[0].zones[0] = [0];
+  assert.match(impossibleGoalReason(compile(d, catalog)), /positions cannot hold/);
 });
 test('solver compares up to ten completed solution paths', () => {
   const r = solve(draftWith({ 0: 3 }), catalog, { ...quick, maxSolutions: 10 });
