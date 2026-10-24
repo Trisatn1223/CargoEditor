@@ -1,4 +1,4 @@
-import { compile, initialState, stateKey, successors, heuristic, replay } from './rules.js';
+import { compile, initialState, stateKey, successors, heuristic, replay, impossibleGoalReason } from './rules.js';
 
 // All search, alternative-route enumeration and replay remain in a Web Worker.
 // Equal-cost predecessors form a shortest-path DAG instead of being silently
@@ -102,6 +102,14 @@ export function solve(draft, catalog, {
   maxStates = 2000000, maxMs = 180000, maxSolutions = 10, onProgress = () => {},
 } = {}) {
   const start = performance.now(), model = compile(draft, catalog);
+  const impossible = impossibleGoalReason(model);
+  if (impossible) {
+    const elapsed = performance.now() - start;
+    onProgress({ explored: 0, states: 0, queued: 0, elapsed,
+      found: 0, maxSolutions, maxStates, phase: 'impossible', reason: impossible });
+    return { status: 'impossible', reason: impossible, explored: 0,
+      states: 0, solutionsFound: 0, elapsed };
+  }
   const queue = new Heap(), best = new Map(), goalNodes = [];
   const limit = Math.max(1, Math.min(10, Math.floor(maxSolutions) || 10));
   let order = 0, explored = 0, optimal = null, found = 0, lastUpdate = 0;
